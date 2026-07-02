@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#000000" />
+  <title>Homework</title>
+
+  <!-- Add-to-home-screen / PWA -->
+  <link rel="manifest" href="manifest.webmanifest" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Homework" />
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
+
+  <style>
+    :root {
+      --line: rgba(255,255,255,0.10);
+      --line-soft: rgba(255,255,255,0.055);
+      --text: #f4f4f6;
+      --muted: rgba(255,255,255,0.45);
+      --faint: rgba(255,255,255,0.28);
+      --danger: #ff6b6b;
+      --warn: #ffd166;
+      --radius: 16px;
+    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body { margin: 0; padding: 0; height: 100%; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+      background: #000;
+      color: var(--text);
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    /* ---------- Background: soft lights + white grid ---------- */
+    .bg { position: fixed; inset: 0; z-index: -2; overflow: hidden; background: #000; }
+    .light {
+      position: absolute; border-radius: 50%;
+      filter: blur(70px); opacity: 0.55; mix-blend-mode: screen;
+      will-change: transform;
+    }
+    .l1 { width: 60vw; height: 60vw; left: -10vw; top: -8vh;
+          background: radial-gradient(circle, #4338ca 0%, transparent 70%);
+          animation: drift1 22s ease-in-out infinite; }
+    .l2 { width: 55vw; height: 55vw; right: -12vw; top: 20vh;
+          background: radial-gradient(circle, #7c3aed 0%, transparent 70%);
+          animation: drift2 27s ease-in-out infinite; }
+    .l3 { width: 62vw; height: 62vw; left: 5vw; bottom: -18vh;
+          background: radial-gradient(circle, #0ea5e9 0%, transparent 70%);
+          animation: drift3 25s ease-in-out infinite; }
+    .l4 { width: 40vw; height: 40vw; right: 6vw; bottom: 4vh;
+          background: radial-gradient(circle, #db2777 0%, transparent 70%);
+          opacity: 0.4; animation: drift4 30s ease-in-out infinite; }
+    @keyframes drift1 { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(8vw,6vh) scale(1.12)} }
+    @keyframes drift2 { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(-7vw,9vh) scale(1.08)} }
+    @keyframes drift3 { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(6vw,-7vh) scale(1.15)} }
+    @keyframes drift4 { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(-6vw,-5vh) scale(1.1)} }
+    @media (prefers-reduced-motion: reduce) { .light { animation: none !important; } }
+
+    .grid {
+      position: fixed; inset: 0; z-index: -1; pointer-events: none;
+      background-image:
+        linear-gradient(to right, var(--line-soft) 1px, transparent 1px),
+        linear-gradient(to bottom, var(--line-soft) 1px, transparent 1px);
+      background-size: 44px 44px;
+      /* fade the grid softly toward the edges */
+      -webkit-mask-image: radial-gradient(ellipse 85% 75% at 50% 40%, #000 55%, transparent 100%);
+              mask-image: radial-gradient(ellipse 85% 75% at 50% 40%, #000 55%, transparent 100%);
+    }
+
+    /* ---------- Layout ---------- */
+    header {
+      position: sticky; top: 0; z-index: 10;
+      padding: calc(20px + env(safe-area-inset-top)) 20px 12px;
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+    }
+    .brand { display: flex; align-items: baseline; justify-content: space-between; }
+    .brand h1 {
+      margin: 0; font-size: 22px; font-weight: 300; letter-spacing: 6px;
+      text-transform: uppercase;
+    }
+    .brand .count { font-size: 12px; color: var(--muted); letter-spacing: 1px; font-variant-numeric: tabular-nums; }
+
+    main { max-width: 640px; margin: 0 auto; padding: 8px 16px calc(120px + env(safe-area-inset-bottom)); }
+
+    .toolbar { display: flex; align-items: center; gap: 14px; margin: 6px 4px 18px; }
+    .search {
+      flex: 1; background: transparent; border: none; border-bottom: 1px solid var(--line);
+      color: var(--text); padding: 8px 2px; font-size: 15px; outline: none;
+      transition: border-color .25s;
+    }
+    .search:focus { border-color: rgba(255,255,255,0.4); }
+    .search::placeholder { color: var(--faint); }
+    .filters { display: flex; gap: 14px; }
+    .filters button {
+      background: none; border: none; color: var(--faint); font-size: 12px; letter-spacing: 1px;
+      text-transform: uppercase; cursor: pointer; padding: 4px 0; position: relative; transition: color .2s;
+    }
+    .filters button.active { color: var(--text); }
+    .filters button.active::after {
+      content: ''; position: absolute; left: 0; right: 0; bottom: -2px; height: 1px; background: #fff;
+      animation: underline .25s ease;
+    }
+    @keyframes underline { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+    /* ---------- Cards ---------- */
+    .card {
+      border: 1px solid var(--line); background: rgba(255,255,255,0.025);
+      backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+      border-radius: var(--radius); padding: 15px; margin-bottom: 12px;
+      animation: cardIn .35s cubic-bezier(.2,.7,.3,1) both;
+    }
+    @keyframes cardIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+    .hw { display: flex; gap: 13px; align-items: flex-start; }
+    .check {
+      flex: 0 0 auto; width: 24px; height: 24px; border-radius: 7px;
+      border: 1.5px solid rgba(255,255,255,0.35); background: transparent; cursor: pointer;
+      display: grid; place-items: center; margin-top: 1px; transition: all .2s ease;
+    }
+    .check:active { transform: scale(.85); }
+    .hw.done .check { background: #fff; border-color: #fff; }
+    .check svg { width: 14px; height: 14px; stroke: #000; opacity: 0; transform: scale(.5); transition: all .2s ease; }
+    .hw.done .check svg { opacity: 1; transform: scale(1); }
+    .body { flex: 1 1 auto; min-width: 0; }
+    .title { font-size: 16px; font-weight: 500; margin: 0 0 4px; transition: opacity .2s, text-decoration .2s; }
+    .hw.done .title { color: var(--muted); text-decoration: line-through; }
+    .meta { font-size: 12px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .tag { border: 1px solid var(--line); border-radius: 999px; padding: 2px 9px; font-size: 11px; letter-spacing: .5px; }
+    .due { font-size: 11px; letter-spacing: .5px; padding: 2px 9px; border-radius: 999px; border: 1px solid transparent; }
+    .due.overdue { color: var(--danger); border-color: rgba(255,107,107,0.35); }
+    .due.soon { color: var(--warn); border-color: rgba(255,209,102,0.3); }
+    .due.ok { color: var(--faint); border: 1px solid var(--line); }
+    .notes { font-size: 13.5px; color: rgba(255,255,255,0.7); margin: 9px 0 0; white-space: pre-wrap; word-break: break-word; line-height: 1.45; }
+
+    .attachments { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 11px; }
+    .thumb { width: 66px; height: 66px; border-radius: 10px; object-fit: cover; border: 1px solid var(--line); }
+    .att {
+      display: flex; align-items: center; gap: 6px; text-decoration: none;
+      border: 1px solid var(--line); color: var(--text);
+      border-radius: 10px; padding: 6px 10px; font-size: 12px; background: rgba(255,255,255,0.02);
+    }
+    .att .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 150px; }
+
+    .row-actions { display: flex; gap: 16px; margin-top: 11px; }
+    .link { background: none; border: none; color: var(--faint); font-size: 12px; letter-spacing: .5px;
+            text-transform: uppercase; cursor: pointer; padding: 0; transition: color .2s; }
+    .link:active { color: #fff; }
+    .link.danger:active { color: var(--danger); }
+
+    .empty { text-align: center; color: var(--faint); padding: 60px 20px; animation: cardIn .5s both; }
+    .empty svg { width: 46px; height: 46px; opacity: .4; margin-bottom: 12px; }
+    .empty p { margin: 0; font-size: 14px; letter-spacing: .5px; }
+
+    /* ---------- FAB ---------- */
+    .fab {
+      position: fixed; right: 20px; bottom: calc(24px + env(safe-area-inset-bottom));
+      width: 58px; height: 58px; border-radius: 50%;
+      border: 1px solid rgba(255,255,255,0.25); background: rgba(255,255,255,0.06);
+      backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+      color: #fff; font-size: 28px; font-weight: 200; line-height: 1;
+      box-shadow: 0 0 30px rgba(255,255,255,0.08); cursor: pointer; z-index: 20;
+      transition: transform .2s ease, background .2s;
+    }
+    .fab:active { transform: scale(.9); background: rgba(255,255,255,0.14); }
+
+    .footer-tools { text-align: center; margin: 24px 0 4px; }
+    .footer-tools button { margin: 0 10px; }
+
+    /* ---------- Sheet ---------- */
+    .backdrop {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+      backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);
+      z-index: 30; display: flex; align-items: flex-end; justify-content: center;
+      animation: fade .25s ease;
+    }
+    @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+    .sheet {
+      width: 100%; max-width: 640px; background: rgba(10,10,14,0.92);
+      border: 1px solid var(--line); border-bottom: none;
+      backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+      border-radius: 22px 22px 0 0; padding: 20px 20px calc(20px + env(safe-area-inset-bottom));
+      max-height: 92vh; overflow-y: auto; animation: slideUp .3s cubic-bezier(.2,.8,.2,1);
+    }
+    @keyframes slideUp { from { transform: translateY(40px); opacity: .5; } to { transform: none; opacity: 1; } }
+    .sheet h2 { margin: 0 0 4px; font-size: 15px; font-weight: 300; letter-spacing: 3px; text-transform: uppercase; color: var(--muted); }
+    label { display: block; font-size: 11px; letter-spacing: 1px; text-transform: uppercase; color: var(--faint); margin: 18px 0 7px; }
+    input[type=text], input[type=date], textarea {
+      width: 100%; background: rgba(255,255,255,0.03); border: 1px solid var(--line); color: var(--text);
+      border-radius: 12px; padding: 12px; font-size: 16px; font-family: inherit; outline: none; transition: border-color .2s;
+    }
+    input:focus, textarea:focus { border-color: rgba(255,255,255,0.4); }
+    input.err { border-color: var(--danger); }
+    textarea { min-height: 74px; resize: vertical; }
+    .file-btns { display: flex; gap: 10px; margin-top: 4px; flex-wrap: wrap; }
+    .file-btn {
+      flex: 1 1 120px; text-align: center; border: 1px dashed var(--line); color: var(--text);
+      border-radius: 12px; padding: 13px; font-size: 13px; letter-spacing: .5px; cursor: pointer; transition: border-color .2s;
+    }
+    .file-btn:active { border-color: rgba(255,255,255,0.4); }
+    .staged { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 11px; }
+    .staged .att .rm { color: var(--danger); font-weight: 700; cursor: pointer; margin-left: 2px; }
+    .sheet-actions { display: flex; gap: 12px; margin-top: 26px; }
+    .btn { flex: 1; border-radius: 13px; padding: 14px; font-size: 15px; letter-spacing: 1px; text-transform: uppercase; cursor: pointer; transition: transform .15s, background .2s; }
+    .btn:active { transform: scale(.97); }
+    .btn.primary { background: #fff; color: #000; border: none; font-weight: 600; }
+    .btn.ghost { background: transparent; color: var(--muted); border: 1px solid var(--line); }
+  </style>
+</head>
+<body>
+  <!-- animated soft lights + grid -->
+  <div class="bg" aria-hidden="true">
+    <div class="light l1"></div>
+    <div class="light l2"></div>
+    <div class="light l3"></div>
+    <div class="light l4"></div>
+  </div>
+  <div class="grid" aria-hidden="true"></div>
+
+  <div id="root"></div>
+
+  <!-- React + Babel via CDN (no build step needed) -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js" crossorigin></script>
+
+  <script type="text/babel" data-presets="react">
+  const { useState, useEffect, useRef, useCallback } = React;
+
+  /* ---------- IndexedDB ---------- */
+  const DB_NAME = 'homework-tracker', DB_VER = 1;
+  let db;
+  function openDB() {
+    return new Promise((resolve, reject) => {
+      const req = indexedDB.open(DB_NAME, DB_VER);
+      req.onupgradeneeded = (e) => {
+        const d = e.target.result;
+        if (!d.objectStoreNames.contains('homework')) d.createObjectStore('homework', { keyPath: 'id' });
+        if (!d.objectStoreNames.contains('attachments')) {
+          const s = d.createObjectStore('attachments', { keyPath: 'id' });
+          s.createIndex('homeworkId', 'homeworkId', { unique: false });
+        }
+      };
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+  }
+  const store = (s, m) => db.transaction(s, m).objectStore(s);
+  const reqP = (r) => new Promise((res, rej) => { r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
+  const getAllHW = () => reqP(store('homework', 'readonly').getAll());
+  const putHW = (o) => reqP(store('homework', 'readwrite').put(o));
+  const delHWrec = (id) => reqP(store('homework', 'readwrite').delete(id));
+  const putAtt = (o) => reqP(store('attachments', 'readwrite').put(o));
+  const delAtt = (id) => reqP(store('attachments', 'readwrite').delete(id));
+  const getAllAtts = () => reqP(store('attachments', 'readonly').getAll());
+  const getAttsFor = (hwId) => reqP(store('attachments', 'readonly').index('homeworkId').getAll(IDBKeyRange.only(hwId)));
+
+  const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+
+  /* ---------- Date helpers ---------- */
+  const fmtDate = (iso) => iso ? new Date(iso + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '';
+  function dueInfo(iso, done) {
+    if (!iso) return { cls: 'ok', label: 'No date' };
+    const today = new Date(); today.setHours(0,0,0,0);
+    const days = Math.round((new Date(iso + 'T00:00:00') - today) / 86400000);
+    if (done) return { cls: 'ok', label: fmtDate(iso) };
+    if (days < 0) return { cls: 'overdue', label: 'Overdue · ' + fmtDate(iso) };
+    if (days === 0) return { cls: 'soon', label: 'Today' };
+    if (days === 1) return { cls: 'soon', label: 'Tomorrow' };
+    if (days <= 3) return { cls: 'soon', label: 'In ' + days + ' days' };
+    return { cls: 'ok', label: fmtDate(iso) };
+  }
+
+  /* ---------- Sheet (add / edit) ---------- */
+  function Sheet({ initial, onClose, onSaved }) {
+    const [subject, setSubject] = useState(initial ? initial.subject : '');
+    const [className, setClassName] = useState(initial ? initial.className : '');
+    const [dueDate, setDueDate] = useState(initial ? initial.dueDate : '');
+    const [notes, setNotes] = useState(initial ? initial.notes : '');
+    const [staged, setStaged] = useState([]); // {id, homeworkId?, name, type, blob, url}
+    const [err, setErr] = useState(false);
+    const subjectRef = useRef(null);
+
+    useEffect(() => {
+      let urls = [];
+      if (initial) {
+        getAttsFor(initial.id).then(atts => {
+          const withUrls = atts.map(a => ({ ...a, url: URL.createObjectURL(a.blob) }));
+          urls = withUrls.map(a => a.url);
+          setStaged(withUrls);
+        });
+      }
+      setTimeout(() => subjectRef.current && subjectRef.current.focus(), 120);
+      return () => urls.forEach(URL.revokeObjectURL);
+    }, []);
+
+    const addFiles = (fileList) => {
+      const added = Array.from(fileList).map(f => {
+        const blob = f;
+        return { id: uid(), name: f.name || ('photo-' + Date.now() + '.jpg'), type: f.type, blob, url: URL.createObjectURL(blob) };
+      });
+      setStaged(s => [...s, ...added]);
+    };
+    const removeStaged = (id) => setStaged(s => {
+      const gone = s.find(x => x.id === id);
+      if (gone && !gone.homeworkId) URL.revokeObjectURL(gone.url);
+      return s.filter(x => x.id !== id);
+    });
+
+    async function save() {
+      const subj = subject.trim();
+      if (!subj) { setErr(true); subjectRef.current && subjectRef.current.focus(); return; }
+      const id = initial ? initial.id : uid();
+      const existing = initial;
+      const hw = {
+        id, subject: subj, className: className.trim(), dueDate, notes: notes.trim(),
+        done: existing ? existing.done : false,
+        createdAt: existing ? existing.createdAt : Date.now(),
+      };
+      await putHW(hw);
+      const prev = initial ? await getAttsFor(id) : [];
+      const stagedIds = new Set(staged.map(s => s.id));
+      for (const p of prev) if (!stagedIds.has(p.id)) await delAtt(p.id);
+      for (const s of staged) if (!s.homeworkId) await putAtt({ id: s.id, homeworkId: id, name: s.name, type: s.type, blob: s.blob });
+      onSaved();
+    }
+
+    return (
+      <div className="backdrop" onClick={(e) => { if (e.target.classList.contains('backdrop')) onClose(); }}>
+        <div className="sheet">
+          <h2>{initial ? 'Edit' : 'New homework'}</h2>
+
+          <label>Subject *</label>
+          <input ref={subjectRef} type="text" className={err ? 'err' : ''} value={subject}
+            onChange={e => { setSubject(e.target.value); setErr(false); }} placeholder="Mathematics" autoComplete="off" />
+
+          <label>Class</label>
+          <input type="text" value={className} onChange={e => setClassName(e.target.value)} placeholder="10-B · Period 3" autoComplete="off" />
+
+          <label>Due / finish by</label>
+          <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} />
+
+          <label>Notes</label>
+          <textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Pages, questions, details…" />
+
+          <label>Attachments — photos &amp; files</label>
+          <div className="file-btns">
+            <label className="file-btn">📷 Photo
+              <input type="file" accept="image/*" capture="environment" multiple hidden
+                onChange={e => { addFiles(e.target.files); e.target.value = ''; }} />
+            </label>
+            <label className="file-btn">📎 File
+              <input type="file" multiple hidden onChange={e => { addFiles(e.target.files); e.target.value = ''; }} />
+            </label>
+          </div>
+          {staged.length > 0 &&
+            <div className="staged">
+              {staged.map(a =>
+                <div className="att" key={a.id}>
+                  <span>{(a.type||'').startsWith('image/') ? '🖼️' : '📎'}</span>
+                  <span className="name">{a.name}</span>
+                  <span className="rm" onClick={() => removeStaged(a.id)}>✕</span>
+                </div>)}
+            </div>}
+
+          <div className="sheet-actions">
+            <button className="btn ghost" onClick={onClose}>Cancel</button>
+            <button className="btn primary" onClick={save}>Save</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  /* ---------- Card ---------- */
+  function Card({ item, atts, onToggle, onEdit, onDelete }) {
+    const di = dueInfo(item.dueDate, item.done);
+    return (
+      <div className="card">
+        <div className={'hw' + (item.done ? ' done' : '')}>
+          <button className="check" onClick={() => onToggle(item)} aria-label="Toggle done">
+            <svg viewBox="0 0 24 24" fill="none" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12l5 5L20 6"/></svg>
+          </button>
+          <div className="body">
+            <p className="title">{item.subject || '(no subject)'}</p>
+            <div className="meta">
+              {item.className && <span className="tag">{item.className}</span>}
+              <span className={'due ' + di.cls}>{di.label}</span>
+            </div>
+            {item.notes && <p className="notes">{item.notes}</p>}
+            {atts.length > 0 &&
+              <div className="attachments">
+                {atts.map(a => (a.type||'').startsWith('image/')
+                  ? <a key={a.id} href={a.url} target="_blank" rel="noopener"><img className="thumb" src={a.url} alt={a.name} /></a>
+                  : <a key={a.id} className="att" href={a.url} download={a.name}>📎 <span className="name">{a.name}</span></a>)}
+              </div>}
+            <div className="row-actions">
+              <button className="link" onClick={() => onEdit(item)}>Edit</button>
+              <button className="link danger" onClick={() => onDelete(item)}>Delete</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  /* ---------- App ---------- */
+  function App() {
+    const [items, setItems] = useState([]);
+    const [attsByHw, setAttsByHw] = useState({});
+    const [filter, setFilter] = useState('todo');
+    const [search, setSearch] = useState('');
+    const [sheet, setSheet] = useState(null); // null | {editing?: item}
+    const urlsRef = useRef([]);
+    const importRef = useRef(null);
+
+    const load = useCallback(async () => {
+      const [hw, atts] = [await getAllHW(), await getAllAtts()];
+      urlsRef.current.forEach(URL.revokeObjectURL);
+      urlsRef.current = [];
+      const map = {};
+      for (const a of atts) {
+        const url = URL.createObjectURL(a.blob); urlsRef.current.push(url);
+        (map[a.homeworkId] ||= []).push({ ...a, url });
+      }
+      setItems(hw); setAttsByHw(map);
+    }, []);
+
+    useEffect(() => { openDB().then(db2 => { db = db2; load(); }); }, []);
+
+    const openCount = items.filter(i => !i.done).length;
+
+    let view = items.filter(i => filter === 'all' ? true : filter === 'done' ? i.done : !i.done);
+    if (search.trim()) {
+      const t = search.toLowerCase();
+      view = view.filter(i => (i.subject||'').toLowerCase().includes(t) ||
+        (i.className||'').toLowerCase().includes(t) || (i.notes||'').toLowerCase().includes(t));
+    }
+    view = view.slice().sort((a, b) => {
+      if (a.done !== b.done) return a.done ? 1 : -1;
+      const ad = a.dueDate || '9999-99-99', bd = b.dueDate || '9999-99-99';
+      if (ad !== bd) return ad < bd ? -1 : 1;
+      return (a.createdAt||0) - (b.createdAt||0);
+    });
+
+    const toggle = async (it) => { await putHW({ ...it, done: !it.done }); load(); };
+    const del = async (it) => {
+      if (!confirm('Delete this homework and its attachments?')) return;
+      for (const a of await getAttsFor(it.id)) await delAtt(a.id);
+      await delHWrec(it.id); load();
+    };
+
+    /* backup / restore */
+    async function exportData() {
+      const hw = await getAllHW(), atts = await getAllAtts();
+      const toB64 = (blob) => new Promise(res => { const r = new FileReader(); r.onload = () => res(r.result); r.readAsDataURL(blob); });
+      const attOut = [];
+      for (const a of atts) attOut.push({ id: a.id, homeworkId: a.homeworkId, name: a.name, type: a.type, data: await toB64(a.blob) });
+      const blob = new Blob([JSON.stringify({ version: 1, exportedAt: new Date().toISOString(), homework: hw, attachments: attOut })], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = 'homework-backup-' + new Date().toISOString().slice(0,10) + '.json'; a.click();
+      URL.revokeObjectURL(url);
+    }
+    async function importData(file) {
+      const data = JSON.parse(await file.text());
+      if (!data.homework) { alert('That does not look like a homework backup.'); return; }
+      for (const h of data.homework) await putHW(h);
+      for (const a of (data.attachments||[])) {
+        const blob = await (await fetch(a.data)).blob();
+        await putAtt({ id: a.id, homeworkId: a.homeworkId, name: a.name, type: a.type, blob });
+      }
+      alert('Restore complete!'); load();
+    }
+
+    return (
+      <React.Fragment>
+        <header>
+          <div className="brand">
+            <h1>Homework</h1>
+            <span className="count">{items.length === 0 ? 'empty' : openCount + ' to do · ' + (items.length - openCount) + ' done'}</span>
+          </div>
+        </header>
+
+        <main>
+          <div className="toolbar">
+            <input className="search" placeholder="Search…" value={search} onChange={e => setSearch(e.target.value)} />
+            <div className="filters">
+              {['todo','done','all'].map(f =>
+                <button key={f} className={filter === f ? 'active' : ''} onClick={() => setFilter(f)}>{f}</button>)}
+            </div>
+          </div>
+
+          {view.length === 0
+            ? <div className="empty">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 9h8M8 13h6"/></svg>
+                <p>{filter === 'todo' ? 'All caught up.' : 'Nothing here yet.'}</p>
+              </div>
+            : view.map(it => <Card key={it.id} item={it} atts={attsByHw[it.id] || []} onToggle={toggle} onEdit={(i)=>setSheet({editing:i})} onDelete={del} />)}
+
+          <div className="footer-tools">
+            <button className="link" onClick={exportData}>Backup</button>
+            <button className="link" onClick={() => importRef.current.click()}>Restore</button>
+            <input ref={importRef} type="file" accept="application/json" hidden
+              onChange={e => { if (e.target.files[0]) importData(e.target.files[0]); e.target.value = ''; }} />
+          </div>
+        </main>
+
+        <button className="fab" onClick={() => setSheet({})} aria-label="Add homework">+</button>
+
+        {sheet && <Sheet initial={sheet.editing || null} onClose={() => setSheet(null)} onSaved={() => { setSheet(null); load(); }} />}
+      </React.Fragment>
+    );
+  }
+
+  ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+  }
+  </script>
+</body>
+</html>
