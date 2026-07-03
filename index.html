@@ -885,42 +885,52 @@
   /* ---------- Render the weekly schedule to a downloadable image ---------- */
   function renderScheduleImage(title, days, byDay) {
     const draw = () => {
-      const scale = 2, W = 1080, pad = 60, headBlock = 130, dayHeadH = 62, rowH = 76, dayGap = 24;
-      let h = pad + headBlock;
-      for (const d of days) h += dayHeadH + Math.max(1, (byDay[d] || []).length) * rowH + dayGap;
-      h += pad - dayGap;
+      const scale = 3, pad = 46, colW = 184, gap = 12, titleH = 88, dayHeadH = 40, cardH = 82, cardGap = 8;
+      const N = days.length;
+      const W = pad * 2 + N * colW + (N - 1) * gap;
+      const maxRows = Math.max(1, ...days.map(d => (byDay[d] || []).length));
+      const H = pad + titleH + dayHeadH + maxRows * (cardH + cardGap) - cardGap + pad;
       const canvas = document.createElement('canvas');
-      canvas.width = W * scale; canvas.height = h * scale;
+      canvas.width = W * scale; canvas.height = H * scale;
       const ctx = canvas.getContext('2d'); ctx.scale(scale, scale);
-      ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, h);
+      ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left';
+      ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H);
       ctx.strokeStyle = 'rgba(255,255,255,0.05)'; ctx.lineWidth = 1;
-      for (let x = 0; x <= W; x += 60) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke(); }
-      for (let y = 0; y <= h; y += 60) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
-      ctx.textBaseline = 'alphabetic';
-      ctx.fillStyle = '#f5f5f7'; ctx.font = '700 46px Inter, -apple-system, sans-serif';
-      ctx.fillText(title, pad, pad + 44);
-      ctx.fillStyle = '#7a7a80'; ctx.font = '500 20px "JetBrains Mono", ui-monospace, monospace';
-      ctx.fillText('WEEKLY SCHEDULE', pad, pad + 78);
-      let y = pad + headBlock;
-      for (const d of days) {
-        ctx.fillStyle = '#55555c'; ctx.font = '600 19px Inter, sans-serif';
-        ctx.fillText(DAYS[d].toUpperCase(), pad, y + 26);
-        ctx.strokeStyle = 'rgba(255,255,255,0.12)'; ctx.beginPath(); ctx.moveTo(pad, y + 42); ctx.lineTo(W - pad, y + 42); ctx.stroke();
-        y += dayHeadH;
-        const list = byDay[d] || [];
-        if (!list.length) { ctx.fillStyle = '#3a3a40'; ctx.font = '400 24px Inter, sans-serif'; ctx.fillText('—', pad, y + 40); y += rowH; }
-        else for (const c of list) {
+      for (let x = 0; x <= W; x += 48) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
+      for (let y = 0; y <= H; y += 48) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+
+      const clip = (text, maxW) => {
+        if (ctx.measureText(text).width <= maxW) return text;
+        let t = text;
+        while (t.length && ctx.measureText(t + '…').width > maxW) t = t.slice(0, -1);
+        return t + '…';
+      };
+
+      ctx.fillStyle = '#f5f5f7'; ctx.font = '700 38px Inter, -apple-system, sans-serif';
+      ctx.fillText(clip(title, W - pad * 2), pad, pad + 34);
+      ctx.fillStyle = '#7a7a80'; ctx.font = '500 16px "JetBrains Mono", ui-monospace, monospace';
+      ctx.fillText('WEEKLY SCHEDULE', pad, pad + 62);
+
+      const gridTop = pad + titleH;
+      days.forEach((d, i) => {
+        const x = pad + i * (colW + gap);
+        ctx.fillStyle = '#f5f5f7'; ctx.font = '700 18px Inter, sans-serif';
+        ctx.fillText(DAYS_SHORT[d].toUpperCase(), x, gridTop + 20);
+        ctx.strokeStyle = 'rgba(255,255,255,0.14)'; ctx.beginPath(); ctx.moveTo(x, gridTop + 32); ctx.lineTo(x + colW, gridTop + 32); ctx.stroke();
+        let cy = gridTop + dayHeadH;
+        for (const c of (byDay[d] || [])) {
           const col = c.color || '#f5f5f7';
-          ctx.fillStyle = col; ctx.fillRect(pad, y + 14, 6, rowH - 26);
-          ctx.fillStyle = '#9a9aa2'; ctx.font = '500 24px "JetBrains Mono", ui-monospace, monospace';
-          ctx.fillText(c.start + '–' + c.end, pad + 26, y + 44);
-          ctx.fillStyle = col; ctx.font = '600 30px Inter, sans-serif';
-          ctx.fillText(c.subject, pad + 250, y + 44);
-          if (c.room) { ctx.fillStyle = '#7a7a80'; ctx.font = '400 22px Inter, sans-serif'; ctx.textAlign = 'right'; ctx.fillText(c.room, W - pad, y + 43); ctx.textAlign = 'left'; }
-          y += rowH;
+          ctx.fillStyle = 'rgba(255,255,255,0.03)'; ctx.fillRect(x, cy, colW, cardH);
+          ctx.fillStyle = col; ctx.fillRect(x, cy, 4, cardH);
+          ctx.fillStyle = '#9a9aa2'; ctx.font = '500 14px "JetBrains Mono", ui-monospace, monospace';
+          ctx.fillText(c.start + '–' + c.end, x + 13, cy + 24);
+          ctx.fillStyle = col; ctx.font = '700 19px Inter, sans-serif';
+          ctx.fillText(clip(c.subject, colW - 24), x + 13, cy + 49);
+          if (c.room) { ctx.fillStyle = '#7a7a80'; ctx.font = '400 13px Inter, sans-serif'; ctx.fillText(clip(c.room, colW - 24), x + 13, cy + 70); }
+          cy += cardH + cardGap;
         }
-        y += dayGap;
-      }
+      });
+
       canvas.toBlob((blob) => {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a'); a.href = url; a.download = 'horario.png';
