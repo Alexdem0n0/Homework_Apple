@@ -1,9 +1,13 @@
-# 📚 Homework Tracker
+# 👻 Homework Tracker
 
 A tiny home‑screen app for your iPhone to keep track of your homework — by
 **subject**, **class** and **due date** — with **photos and files** attached to
 each entry. You fill in a quick form, and everything shows up in a tidy list you
 can check off.
+
+It's built with **React** and styled to match the **PHANTOM SECURE** look:
+minimalist, pure‑black background with a faint white grid, monochrome type, and
+the ghost mark as the app icon.
 
 Everything is stored **privately on your own phone** (nothing is uploaded to any
 server), and it **works offline** once installed.
