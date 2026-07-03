@@ -212,6 +212,29 @@
 
     .form-err { color: var(--overdue); font-size: 12px; margin: 16px 0 0; letter-spacing: .3px; }
 
+    /* schedule / horario */
+    .sched-wrap { padding-top: 8px; }
+    .sched-head { display: flex; align-items: center; justify-content: space-between; padding: 16px 2px; border-bottom: 1px solid var(--line); }
+    .sched-head .mlabel { font-size: 15px; letter-spacing: .5px; }
+    .sched-day { margin-top: 20px; }
+    .sched-day h3 { font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: var(--faint); margin: 0 0 10px; }
+    .cls { display: flex; align-items: center; gap: 14px; border: 1px solid var(--line); border-left: 3px solid #f5f5f7;
+      background: var(--panel); padding: 12px 14px; margin-bottom: 8px; cursor: pointer; }
+    .cls-time { font-size: 13px; color: var(--muted); flex: 0 0 auto; }
+    .cls-sub { font-size: 15px; font-weight: 500; }
+    .cls-room { margin-left: auto; font-size: 10.5px; letter-spacing: 1px; text-transform: uppercase; color: var(--faint); }
+    .cls-empty { color: #3a3a40; font-size: 14px; padding: 2px 2px 4px; }
+    .sched-actions { margin-top: 26px; }
+    .sched-actions .btn { width: 100%; }
+    .sched-note { color: var(--faint); font-size: 12px; line-height: 1.5; letter-spacing: .3px; margin: 14px 2px 0; text-align: center; }
+
+    /* day picker + time row (class sheet) */
+    .daypick { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+    .dchip { border: 1px solid var(--line); background: none; color: var(--muted); padding: 9px 12px; font-size: 11px; letter-spacing: 1px; text-transform: uppercase; cursor: pointer; }
+    .dchip.on { border-color: #fff; color: #fff; background: rgba(255,255,255,0.06); }
+    .time-row { display: flex; gap: 16px; }
+    .time-row > div { flex: 1; }
+
     /* ---------- Add button (solid white, sharp) ---------- */
     .add {
       position: fixed; left: 50%; transform: translateX(-50%);
@@ -238,7 +261,7 @@
     .sheet h2 { margin: 0 0 22px; font-size: 12px; font-weight: 500; letter-spacing: 3px; text-transform: uppercase; color: var(--faint); }
     label { display: block; font-size: 10.5px; letter-spacing: 2px; text-transform: uppercase; color: var(--faint); margin: 22px 0 9px; }
     /* underline-only fields, matching the reference contact form */
-    input[type=text], input[type=date], textarea {
+    input[type=text], input[type=date], input[type=time], textarea {
       width: 100%; background: transparent; border: none; border-bottom: 1px solid var(--line);
       color: var(--text); padding: 9px 2px; font-size: 16px; font-family: inherit; outline: none; transition: border-color .2s;
     }
@@ -286,7 +309,7 @@
   const { useState, useEffect, useRef, useCallback } = React;
 
   /* ---------- IndexedDB ---------- */
-  const DB_NAME = 'homework-tracker', DB_VER = 2;
+  const DB_NAME = 'homework-tracker', DB_VER = 3;
   let db;
   function openDB() {
     return new Promise((resolve, reject) => {
@@ -299,6 +322,7 @@
           s.createIndex('homeworkId', 'homeworkId', { unique: false });
         }
         if (!d.objectStoreNames.contains('semesters')) d.createObjectStore('semesters', { keyPath: 'id' });
+        if (!d.objectStoreNames.contains('classes')) d.createObjectStore('classes', { keyPath: 'id' });
       };
       req.onsuccess = () => resolve(req.result);
       req.onerror = () => reject(req.error);
@@ -316,6 +340,9 @@
   const getAllSem = () => reqP(store('semesters', 'readonly').getAll());
   const putSem = (o) => reqP(store('semesters', 'readwrite').put(o));
   const delSemRec = (id) => reqP(store('semesters', 'readwrite').delete(id));
+  const getAllClasses = () => reqP(store('classes', 'readonly').getAll());
+  const putClass = (o) => reqP(store('classes', 'readwrite').put(o));
+  const delClassRec = (id) => reqP(store('classes', 'readwrite').delete(id));
 
   const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
   const isImage = (a) => (a.type || '').startsWith('image/');
@@ -359,6 +386,8 @@
 
   /* ---------- Subject colours ---------- */
   const COLORS = ['#e06666', '#e9a23b', '#ead24a', '#5fd08a', '#5cc7e0', '#7aa2ff', '#b98bff', '#ff8ac4'];
+  const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+  const DAYS_SHORT = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
   /* ---------- Calendar reminders (.ics — real iOS notifications via Calendar) ---------- */
   const pad2 = (n) => String(n).padStart(2, '0');
@@ -793,6 +822,159 @@
     );
   }
 
+  /* ---------- Class create / edit sheet ---------- */
+  function ClassSheet({ initial, subjectColors, onClose, onSaved, onDelete }) {
+    const [subject, setSubject] = useState(initial ? initial.subject : '');
+    const [color, setColor] = useState(initial ? (initial.color || '') : '');
+    const [day, setDay] = useState(initial ? initial.day : 0);
+    const [start, setStart] = useState(initial ? initial.start : '08:00');
+    const [end, setEnd] = useState(initial ? initial.end : '09:00');
+    const [room, setRoom] = useState(initial ? (initial.room || '') : '');
+    const [err, setErr] = useState('');
+    const touched = useRef(!!initial);
+
+    const onSub = (v) => { setSubject(v); setErr(''); if (!touched.current) { const c = subjectColors[v.trim().toLowerCase()]; setColor(c || ''); } };
+    const pick = (c) => { touched.current = true; setColor(color === c ? '' : c); };
+
+    async function save() {
+      if (!subject.trim()) { setErr('Please enter a subject.'); return; }
+      if (!start || !end) { setErr('Please set start and end times.'); return; }
+      if (end <= start) { setErr('End time must be after the start time.'); return; }
+      const id = initial ? initial.id : uid();
+      await putClass({ id, subject: subject.trim(), color, day, start, end, room: room.trim(), createdAt: initial ? initial.createdAt : Date.now() });
+      onSaved();
+    }
+
+    return (
+      <div className="backdrop" onClick={(e) => { if (e.target.classList.contains('backdrop')) onClose(); }}>
+        <div className="sheet">
+          <h2>{initial ? 'Edit class' : 'New class'}</h2>
+          <label>Subject *</label>
+          <input type="text" value={subject} onChange={e => onSub(e.target.value)} placeholder="e.g. Mathematics" autoComplete="off" style={color ? { color } : undefined} />
+
+          <label>Colour</label>
+          <div className="swatches">
+            <button type="button" className={'swatch none' + (color ? '' : ' on')} onClick={() => pick('')} title="Default (white)"></button>
+            {COLORS.map(c => <button type="button" key={c} className={'swatch' + (color === c ? ' on' : '')} style={{ background: c }} onClick={() => pick(c)}></button>)}
+          </div>
+
+          <label>Day</label>
+          <div className="daypick">
+            {DAYS_SHORT.map((d, i) => <button type="button" key={d} className={'dchip' + (day === i ? ' on' : '')} onClick={() => setDay(i)}>{d}</button>)}
+          </div>
+
+          <div className="time-row">
+            <div><label>Starts</label><input type="time" value={start} onChange={e => { setStart(e.target.value); setErr(''); }} /></div>
+            <div><label>Ends</label><input type="time" value={end} onChange={e => { setEnd(e.target.value); setErr(''); }} /></div>
+          </div>
+
+          <label>Room / note</label>
+          <input type="text" value={room} onChange={e => setRoom(e.target.value)} placeholder="e.g. Room 204" autoComplete="off" />
+
+          {err && <p className="form-err">{err}</p>}
+          <div className="sheet-actions">
+            {initial ? <button className="btn ghost" onClick={() => onDelete(initial)}>Delete</button>
+                     : <button className="btn ghost" onClick={onClose}>Cancel</button>}
+            <button className="btn primary" onClick={save}>Save</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  /* ---------- Render the weekly schedule to a downloadable image ---------- */
+  function renderScheduleImage(title, days, byDay) {
+    const draw = () => {
+      const scale = 2, W = 1080, pad = 60, headBlock = 130, dayHeadH = 62, rowH = 76, dayGap = 24;
+      let h = pad + headBlock;
+      for (const d of days) h += dayHeadH + Math.max(1, (byDay[d] || []).length) * rowH + dayGap;
+      h += pad - dayGap;
+      const canvas = document.createElement('canvas');
+      canvas.width = W * scale; canvas.height = h * scale;
+      const ctx = canvas.getContext('2d'); ctx.scale(scale, scale);
+      ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, h);
+      ctx.strokeStyle = 'rgba(255,255,255,0.05)'; ctx.lineWidth = 1;
+      for (let x = 0; x <= W; x += 60) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke(); }
+      for (let y = 0; y <= h; y += 60) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+      ctx.textBaseline = 'alphabetic';
+      ctx.fillStyle = '#f5f5f7'; ctx.font = '700 46px Inter, -apple-system, sans-serif';
+      ctx.fillText(title, pad, pad + 44);
+      ctx.fillStyle = '#7a7a80'; ctx.font = '500 20px "JetBrains Mono", ui-monospace, monospace';
+      ctx.fillText('WEEKLY SCHEDULE', pad, pad + 78);
+      let y = pad + headBlock;
+      for (const d of days) {
+        ctx.fillStyle = '#55555c'; ctx.font = '600 19px Inter, sans-serif';
+        ctx.fillText(DAYS[d].toUpperCase(), pad, y + 26);
+        ctx.strokeStyle = 'rgba(255,255,255,0.12)'; ctx.beginPath(); ctx.moveTo(pad, y + 42); ctx.lineTo(W - pad, y + 42); ctx.stroke();
+        y += dayHeadH;
+        const list = byDay[d] || [];
+        if (!list.length) { ctx.fillStyle = '#3a3a40'; ctx.font = '400 24px Inter, sans-serif'; ctx.fillText('—', pad, y + 40); y += rowH; }
+        else for (const c of list) {
+          const col = c.color || '#f5f5f7';
+          ctx.fillStyle = col; ctx.fillRect(pad, y + 14, 6, rowH - 26);
+          ctx.fillStyle = '#9a9aa2'; ctx.font = '500 24px "JetBrains Mono", ui-monospace, monospace';
+          ctx.fillText(c.start + '–' + c.end, pad + 26, y + 44);
+          ctx.fillStyle = col; ctx.font = '600 30px Inter, sans-serif';
+          ctx.fillText(c.subject, pad + 250, y + 44);
+          if (c.room) { ctx.fillStyle = '#7a7a80'; ctx.font = '400 22px Inter, sans-serif'; ctx.textAlign = 'right'; ctx.fillText(c.room, W - pad, y + 43); ctx.textAlign = 'left'; }
+          y += rowH;
+        }
+        y += dayGap;
+      }
+      canvas.toBlob((blob) => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href = url; a.download = 'horario.png';
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 5000);
+      }, 'image/png');
+    };
+    (document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve()).then(draw);
+  }
+
+  /* ---------- Schedule (horario) view ---------- */
+  function Schedule({ classes, semesters, selId, onEdit, onNew }) {
+    const sem = semesters.find(s => s.id === selId) || null;
+    const title = sem ? sem.name : 'Weekly Schedule';
+    const byDay = {};
+    for (const c of classes) (byDay[c.day] = byDay[c.day] || []).push(c);
+    for (const k in byDay) byDay[k].sort((a, b) => a.start.localeCompare(b.start));
+    const hasWeekend = classes.some(c => c.day >= 5);
+    const days = [0,1,2,3,4].concat(hasWeekend ? [5,6] : []);
+
+    return (
+      <div className="sched-wrap">
+        <div className="sched-head">
+          <span className="mlabel">{title}</span>
+          <button className="link" onClick={onNew}>＋ Add class</button>
+        </div>
+
+        {classes.length === 0 &&
+          <div className="day-empty">No classes yet — tap “＋ Add class” to build your horario.</div>}
+
+        {classes.length > 0 && days.map(d =>
+          <div className="sched-day" key={d}>
+            <h3>{DAYS[d]}</h3>
+            {(byDay[d] || []).length
+              ? byDay[d].map(c =>
+                  <div className="cls" key={c.id} onClick={() => onEdit(c)} style={{ borderLeftColor: c.color || '#f5f5f7' }}>
+                    <span className="cls-time mono">{c.start}–{c.end}</span>
+                    <span className="cls-sub" style={c.color ? { color: c.color } : undefined}>{c.subject}</span>
+                    {c.room && <span className="cls-room">{c.room}</span>}
+                  </div>)
+              : <div className="cls-empty">—</div>}
+          </div>)}
+
+        {classes.length > 0 &&
+          <React.Fragment>
+            <div className="sched-actions">
+              <button className="btn primary" onClick={() => renderScheduleImage(title, days, byDay)}>⬇ Download schedule image</button>
+            </div>
+            <p className="sched-note">Save the image, then add it with a photo‑widget app (e.g. Widgetsmith) to show your schedule on your home screen.</p>
+          </React.Fragment>}
+      </div>
+    );
+  }
+
   /* ---------- App ---------- */
   function App() {
     const [items, setItems] = useState([]);
@@ -800,15 +982,17 @@
     const [filter, setFilter] = useState('todo');
     const [search, setSearch] = useState('');
     const [sheet, setSheet] = useState(null);
-    const [mode, setMode] = useState('list');           // 'list' | 'cal'
+    const [mode, setMode] = useState('list');           // 'list' | 'cal' | 'sched'
     const [semesters, setSemesters] = useState([]);
     const [selSem, setSelSem] = useState(() => localStorage.getItem('hw_sem') || null);
     const [semSheet, setSemSheet] = useState(null);      // null | {} | {editing:sem}
+    const [classes, setClasses] = useState([]);
+    const [classSheet, setClassSheet] = useState(null);  // null | {} | {editing:cls}
     const urlsRef = useRef([]);
     const importRef = useRef(null);
 
     const load = useCallback(async () => {
-      const [hw, atts, sems] = [await getAllHW(), await getAllAtts(), await getAllSem()];
+      const [hw, atts, sems, cls] = [await getAllHW(), await getAllAtts(), await getAllSem(), await getAllClasses()];
       urlsRef.current.forEach(URL.revokeObjectURL); urlsRef.current = [];
       const map = {};
       for (const a of atts) {
@@ -817,6 +1001,7 @@
       }
       setItems(hw); setAttsByHw(map);
       setSemesters(sems.slice().sort((a, b) => (a.start || '').localeCompare(b.start || '')));
+      setClasses(cls);
     }, []);
 
     useEffect(() => { openDB().then(d => { db = d; load(); }); }, []);
@@ -827,6 +1012,10 @@
       await delSemRec(s.id);
       if (selSem === s.id) chooseSem(null);
       setSemSheet(null); load();
+    };
+    const deleteClass = async (c) => {
+      if (!confirm('Delete this class?')) return;
+      await delClassRec(c.id); setClassSheet(null); load();
     };
 
     const openCount = items.filter(i => !i.done).length;
@@ -893,6 +1082,7 @@
           <div className="viewtabs">
             <button className={mode === 'list' ? 'active' : ''} onClick={() => setMode('list')}>List</button>
             <button className={mode === 'cal' ? 'active' : ''} onClick={() => setMode('cal')}>Calendar</button>
+            <button className={mode === 'sched' ? 'active' : ''} onClick={() => setMode('sched')}>Schedule</button>
           </div>
         </header>
 
@@ -927,10 +1117,13 @@
                 <input ref={importRef} type="file" accept="application/json" hidden onChange={e => { if (e.target.files[0]) importData(e.target.files[0]); e.target.value = ''; }} />
               </div>
             </React.Fragment>
-          ) : (
+          ) : mode === 'cal' ? (
             <Calendar items={items} semesters={semesters} selId={selSem}
               onSelSem={chooseSem} onNewSem={() => setSemSheet({})} onEditSem={(s) => setSemSheet({ editing: s })}
               onEditItem={(i) => setSheet({ editing: i })} onAddForDay={(iso) => setSheet({ date: iso })} />
+          ) : (
+            <Schedule classes={classes} semesters={semesters} selId={selSem}
+              onNew={() => setClassSheet({})} onEdit={(c) => setClassSheet({ editing: c })} />
           )}
         </main>
 
@@ -940,6 +1133,7 @@
 
         {sheet && <Sheet initial={sheet.editing || null} prefillDate={sheet.date || ''} subjectColors={subjectColors} onClose={() => setSheet(null)} onSaved={() => { setSheet(null); load(); }} />}
         {semSheet && <SemesterSheet initial={semSheet.editing || null} onClose={() => setSemSheet(null)} onDelete={deleteSem} onSaved={(id) => { setSemSheet(null); chooseSem(id); load(); }} />}
+        {classSheet && <ClassSheet initial={classSheet.editing || null} subjectColors={subjectColors} onClose={() => setClassSheet(null)} onDelete={deleteClass} onSaved={() => { setClassSheet(null); load(); }} />}
       </React.Fragment>
     );
   }

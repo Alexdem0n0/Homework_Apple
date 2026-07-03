@@ -26,6 +26,11 @@ server), and it **works offline** once installed.
 - **Reminders in your iPhone Calendar** — tap *🔔 Remind me* on any homework and
   it adds a Calendar event that alerts you the day before and the morning it's
   due, so you get real notifications even when the app is closed
+- **Calendar view** — a month grid of your homework by due date, scoped to
+  semesters you define yourself
+- **Weekly schedule (horario)** — build your fixed weekly class timetable, then
+  **download it as an image** to use as a home‑screen widget (with a photo‑widget
+  app like Widgetsmith)
 - **Check things off** when finished; filter by *To do*, *Done*, or *All*
 - **Search** across subjects, classes and notes
 - **Backup / Restore** your data as a single file (great before switching phones)
