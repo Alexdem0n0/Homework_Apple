@@ -128,8 +128,10 @@
     .check svg { width: 13px; height: 13px; stroke: #000; opacity: 0; transform: scale(.5); transition: all .2s; }
     .hw.done .check svg { opacity: 1; transform: scale(1); }
     .body { flex: 1 1 auto; min-width: 0; }
-    .title { font-size: 16.5px; font-weight: 500; margin: 0 0 6px; letter-spacing: -0.2px; }
+    .title { font-size: 16.5px; font-weight: 500; margin: 0 0 4px; letter-spacing: -0.2px; }
     .hw.done .title { color: var(--muted); text-decoration: line-through; }
+    .subtitle { margin: 0 0 7px; font-size: 12.5px; color: var(--muted); letter-spacing: 0.2px; }
+    .hw.done .subtitle { color: var(--faint); }
     .meta { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
     .tag { font-size: 10.5px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--dim); border: 1px solid var(--line); padding: 3px 8px; }
     .due { font-size: 10.5px; letter-spacing: 1px; text-transform: uppercase; padding: 3px 8px; border: 1px solid var(--line); color: var(--faint); }
@@ -358,6 +360,7 @@
   /* ---------- Sheet (add / edit) ---------- */
   function Sheet({ initial, subjectColors, onClose, onSaved }) {
     const [subject, setSubject] = useState(initial ? initial.subject : '');
+    const [classNo, setClassNo] = useState(initial ? (initial.classNo || '') : '');
     const [className, setClassName] = useState(initial ? initial.className : '');
     const [dueDate, setDueDate] = useState(initial ? initial.dueDate : '');
     const [notes, setNotes] = useState(initial ? initial.notes : '');
@@ -424,7 +427,7 @@
       const subj = subject.trim();
       if (!subj) { setErr(true); subjectRef.current && subjectRef.current.focus(); return; }
       const id = initial ? initial.id : uid();
-      const hw = { id, subject: subj, className: className.trim(), dueDate, notes: notes.trim(), color,
+      const hw = { id, subject: subj, classNo: classNo.trim(), className: className.trim(), dueDate, notes: notes.trim(), color,
         done: initial ? initial.done : false, createdAt: initial ? initial.createdAt : Date.now() };
       await putHW(hw);
       const prev = initial ? await getAttsFor(id) : [];
@@ -452,6 +455,9 @@
               <button type="button" key={c} className={'swatch' + (color === c ? ' on' : '')}
                 style={{ background: c }} onClick={() => pickColor(c)} title={c}></button>)}
           </div>
+
+          <label>Class no.</label>
+          <input type="text" value={classNo} onChange={e => setClassNo(e.target.value)} placeholder="e.g. Room 204 · Group 7 · anything" autoComplete="off" />
 
           <label>Class</label>
           <input type="text" value={className} onChange={e => setClassName(e.target.value)} placeholder="e.g. 10-B · Period 3" autoComplete="off" />
@@ -555,6 +561,7 @@
           </button>
           <div className="body">
             <p className="title" style={!item.done && item.color ? { color: item.color } : undefined}>{item.subject || '(no subject)'}</p>
+            {item.classNo && <p className="subtitle">{item.classNo}</p>}
             <div className="meta">
               {item.className && <span className="tag">{item.className}</span>}
               <span className={'due ' + di.cls}>{di.label}</span>
@@ -631,6 +638,7 @@
     if (search.trim()) {
       const t = search.toLowerCase();
       view = view.filter(i => (i.subject||'').toLowerCase().includes(t) ||
+        (i.classNo||'').toLowerCase().includes(t) ||
         (i.className||'').toLowerCase().includes(t) || (i.notes||'').toLowerCase().includes(t));
     }
     view = view.slice().sort((a, b) => {
