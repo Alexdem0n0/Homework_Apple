@@ -203,6 +203,12 @@
     .staged .att .ok { color: var(--soon); font-weight: 700; margin-left: 2px; }
     .file-btn.wide { flex-basis: 100%; margin-top: 12px; }
     .file-btn.busy { color: var(--soon); border-color: rgba(217,178,106,0.4); border-style: solid; cursor: default; }
+    /* subject colour swatches */
+    .swatches { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 6px; }
+    .swatch { width: 26px; height: 26px; border-radius: 50%; border: 1px solid var(--line); cursor: pointer; padding: 0; transition: transform .15s; }
+    .swatch:active { transform: scale(.85); }
+    .swatch.on { box-shadow: 0 0 0 2px #000, 0 0 0 3px #fff; }
+    .swatch.none { background: #f5f5f7; }
     .sheet-actions { display: flex; gap: 12px; margin-top: 30px; }
     .btn { flex: 1; padding: 15px; font-family: inherit; font-size: 12px; letter-spacing: 2px; text-transform: uppercase; cursor: pointer; transition: transform .15s, opacity .2s; }
     .btn:active { transform: scale(.97); }
@@ -296,6 +302,48 @@
     return { cls: '', label: fmtDate(iso) };
   }
 
+  /* ---------- Subject colours ---------- */
+  const COLORS = ['#e06666', '#e9a23b', '#ead24a', '#5fd08a', '#5cc7e0', '#7aa2ff', '#b98bff', '#ff8ac4'];
+
+  /* ---------- Calendar reminders (.ics — real iOS notifications via Calendar) ---------- */
+  const pad2 = (n) => String(n).padStart(2, '0');
+  const icsEsc = (s) => String(s || '').replace(/\\/g, '\\\\').replace(/\n/g, '\\n').replace(/,/g, '\\,').replace(/;/g, '\\;');
+  function icsStamp(d) {
+    return d.getUTCFullYear() + pad2(d.getUTCMonth()+1) + pad2(d.getUTCDate()) + 'T' +
+           pad2(d.getUTCHours()) + pad2(d.getUTCMinutes()) + pad2(d.getUTCSeconds()) + 'Z';
+  }
+  const icsLocal = (iso, h, m) => iso.replace(/-/g, '') + 'T' + pad2(h) + pad2(m) + '00'; // floating local time
+  function vevent(item) {
+    if (!item.dueDate) return '';
+    const summary = 'Homework: ' + (item.subject || 'Homework');
+    const desc = [item.className ? ('Class: ' + item.className) : '', item.notes || ''].filter(Boolean).join('\\n');
+    const alarm = (trig) => ['BEGIN:VALARM', 'ACTION:DISPLAY', 'DESCRIPTION:' + icsEsc(summary), 'TRIGGER:' + trig, 'END:VALARM'];
+    return [
+      'BEGIN:VEVENT',
+      'UID:' + item.id + '@homework-tracker',
+      'DTSTAMP:' + icsStamp(new Date()),
+      'DTSTART:' + icsLocal(item.dueDate, 8, 0),
+      'DTEND:' + icsLocal(item.dueDate, 8, 30),
+      'SUMMARY:' + icsEsc(summary),
+      desc ? ('DESCRIPTION:' + desc) : '',
+      ...alarm('-P1D'),   // the day before, 8:00
+      ...alarm('PT0S'),   // morning it's due, 8:00
+      'END:VEVENT'
+    ].filter(Boolean).join('\r\n');
+  }
+  function buildICS(items) {
+    const events = items.map(vevent).filter(Boolean);
+    if (!events.length) return null;
+    return ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Homework Tracker//EN', 'CALSCALE:GREGORIAN', ...events, 'END:VCALENDAR'].join('\r\n');
+  }
+  function downloadICS(filename, text) {
+    const blob = new Blob([text], { type: 'text/calendar' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+  }
+
   /* ---------- Ghost logo ---------- */
   function Ghost() {
     return (
@@ -308,15 +356,27 @@
   }
 
   /* ---------- Sheet (add / edit) ---------- */
-  function Sheet({ initial, onClose, onSaved }) {
+  function Sheet({ initial, subjectColors, onClose, onSaved }) {
     const [subject, setSubject] = useState(initial ? initial.subject : '');
     const [className, setClassName] = useState(initial ? initial.className : '');
     const [dueDate, setDueDate] = useState(initial ? initial.dueDate : '');
     const [notes, setNotes] = useState(initial ? initial.notes : '');
+    const [color, setColor] = useState(initial ? (initial.color || '') : '');
     const [staged, setStaged] = useState([]);
     const [err, setErr] = useState(false);
     const [ocr, setOcr] = useState(null); // {pct} while transcribing, null otherwise
+    const colorTouched = useRef(!!initial);
     const subjectRef = useRef(null);
+
+    // when typing a subject you've used before, adopt its colour (unless you pick one yourself)
+    const onSubjectChange = (v) => {
+      setSubject(v); setErr(false);
+      if (!colorTouched.current) {
+        const c = subjectColors[v.trim().toLowerCase()];
+        setColor(c || '');
+      }
+    };
+    const pickColor = (c) => { colorTouched.current = true; setColor(color === c ? '' : c); };
 
     useEffect(() => {
       let urls = [];
@@ -364,7 +424,7 @@
       const subj = subject.trim();
       if (!subj) { setErr(true); subjectRef.current && subjectRef.current.focus(); return; }
       const id = initial ? initial.id : uid();
-      const hw = { id, subject: subj, className: className.trim(), dueDate, notes: notes.trim(),
+      const hw = { id, subject: subj, className: className.trim(), dueDate, notes: notes.trim(), color,
         done: initial ? initial.done : false, createdAt: initial ? initial.createdAt : Date.now() };
       await putHW(hw);
       const prev = initial ? await getAttsFor(id) : [];
@@ -382,7 +442,16 @@
 
           <label>Subject *</label>
           <input ref={subjectRef} type="text" className={err ? 'err' : ''} value={subject}
-            onChange={e => { setSubject(e.target.value); setErr(false); }} placeholder="e.g. Mathematics" autoComplete="off" />
+            onChange={e => onSubjectChange(e.target.value)} placeholder="e.g. Mathematics" autoComplete="off"
+            style={color ? { color } : undefined} />
+
+          <label>Subject colour</label>
+          <div className="swatches">
+            <button type="button" className={'swatch none' + (color ? '' : ' on')} onClick={() => pickColor('')} title="Default (white)"></button>
+            {COLORS.map(c =>
+              <button type="button" key={c} className={'swatch' + (color === c ? ' on' : '')}
+                style={{ background: c }} onClick={() => pickColor(c)} title={c}></button>)}
+          </div>
 
           <label>Class</label>
           <input type="text" value={className} onChange={e => setClassName(e.target.value)} placeholder="e.g. 10-B · Period 3" autoComplete="off" />
@@ -485,7 +554,7 @@
             <svg viewBox="0 0 24 24" fill="none" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12l5 5L20 6"/></svg>
           </button>
           <div className="body">
-            <p className="title">{item.subject || '(no subject)'}</p>
+            <p className="title" style={!item.done && item.color ? { color: item.color } : undefined}>{item.subject || '(no subject)'}</p>
             <div className="meta">
               {item.className && <span className="tag">{item.className}</span>}
               <span className={'due ' + di.cls}>{di.label}</span>
@@ -513,6 +582,8 @@
               </div>}
             <div className="row-actions">
               <button className="link" onClick={() => onEdit(item)}>Edit</button>
+              {item.dueDate && !item.done &&
+                <button className="link" onClick={() => downloadICS((item.subject || 'homework').replace(/\s+/g, '_') + '.ics', buildICS([item]))}>🔔 Remind me</button>}
               <button className="link danger" onClick={() => onDelete(item)}>Delete</button>
             </div>
           </div>
@@ -545,6 +616,16 @@
     useEffect(() => { openDB().then(d => { db = d; load(); }); }, []);
 
     const openCount = items.filter(i => !i.done).length;
+
+    // remember the colour last used for each subject, so new entries match
+    const subjectColors = {};
+    for (const i of items) if (i.subject && i.color) subjectColors[i.subject.trim().toLowerCase()] = i.color;
+
+    function remindAll() {
+      const ics = buildICS(items.filter(i => !i.done && i.dueDate));
+      if (!ics) { alert('No upcoming homework with a due date to add.'); return; }
+      downloadICS('homework.ics', ics);
+    }
 
     let view = items.filter(i => filter === 'all' ? true : filter === 'done' ? i.done : !i.done);
     if (search.trim()) {
@@ -619,6 +700,7 @@
             : view.map(it => <Card key={it.id} item={it} atts={attsByHw[it.id] || []} onToggle={toggle} onEdit={(i)=>setSheet({editing:i})} onDelete={del} onChanged={load} />)}
 
           <div className="footer-tools">
+            <button className="link" onClick={remindAll}>🔔 Add to Calendar</button>
             <button className="link" onClick={exportData}>Backup</button>
             <button className="link" onClick={() => importRef.current.click()}>Restore</button>
             <input ref={importRef} type="file" accept="application/json" hidden onChange={e => { if (e.target.files[0]) importData(e.target.files[0]); e.target.value = ''; }} />
@@ -629,7 +711,7 @@
           <span className="plus">＋</span> New Homework
         </button>
 
-        {sheet && <Sheet initial={sheet.editing || null} onClose={() => setSheet(null)} onSaved={() => { setSheet(null); load(); }} />}
+        {sheet && <Sheet initial={sheet.editing || null} subjectColors={subjectColors} onClose={() => setSheet(null)} onSaved={() => { setSheet(null); load(); }} />}
       </React.Fragment>
     );
   }

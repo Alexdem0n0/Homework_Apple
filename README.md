@@ -19,7 +19,13 @@ server), and it **works offline** once installed.
 - **Transcribe photos to text** — snap the homework off the board and the app
   reads the text for you (on‑device OCR, English + Spanish). Then **Copy text**
   with one tap, or **Download** the photos.
-- See a sorted list with **Overdue / Today / Tomorrow** highlighting
+- **Automatically ordered by urgency** — overdue and soonest‑due show first, the
+  far‑away ones last, and finished homework drops to the bottom
+- **Colour‑code your subjects** — pick a colour and the subject title shows in it
+  (and it's remembered, so every "Maths" is the same colour)
+- **Reminders in your iPhone Calendar** — tap *🔔 Remind me* on any homework and
+  it adds a Calendar event that alerts you the day before and the morning it's
+  due, so you get real notifications even when the app is closed
 - **Check things off** when finished; filter by *To do*, *Done*, or *All*
 - **Search** across subjects, classes and notes
 - **Backup / Restore** your data as a single file (great before switching phones)
@@ -98,3 +104,10 @@ happens **on your device** — your photos are never uploaded anywhere.
 
 **Can I use it on Android too?** Yes. Open the link in Chrome and choose
 *Add to Home screen*.
+
+**How do notifications work?** iPhone doesn't let a web app schedule background
+alarms on its own, so reminders go through your **Calendar** instead. Tap
+*🔔 Remind me* on a homework (or *🔔 Add to Calendar* at the bottom to add all of
+them). Your iPhone will open Calendar and ask to add the event; once added, the
+Calendar app notifies you **the day before and the morning it's due** — even if
+the Homework app is closed.
