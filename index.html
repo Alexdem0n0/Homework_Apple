@@ -163,6 +163,55 @@
 
     .footer-tools { text-align: center; margin: 26px 0 4px; display: flex; gap: 20px; justify-content: center; }
 
+    /* view tabs */
+    .viewtabs { display: flex; gap: 20px; margin-top: 12px; }
+    .viewtabs button { background: none; border: none; color: var(--faint); font-size: 11px; letter-spacing: 2px;
+      text-transform: uppercase; padding: 4px 0; position: relative; cursor: pointer; transition: color .2s; }
+    .viewtabs button.active { color: var(--text); }
+    .viewtabs button.active::after { content: ''; position: absolute; left: 0; right: 0; bottom: -3px; height: 1px; background: #fff; }
+
+    /* calendar */
+    .cal-wrap { padding-top: 6px; }
+    .sembar { display: flex; gap: 8px; overflow-x: auto; padding: 16px 0; -ms-overflow-style: none; scrollbar-width: none; }
+    .sembar::-webkit-scrollbar { display: none; }
+    .schip { white-space: nowrap; border: 1px solid var(--line); background: none; color: var(--muted);
+      padding: 8px 13px; font-size: 11px; letter-spacing: 1px; text-transform: uppercase; cursor: pointer; }
+    .schip.on { border-color: var(--line-strong); color: var(--text); }
+    .schip.add { color: var(--faint); border-style: dashed; }
+    .seminfo { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; align-items: center;
+      padding: 2px 2px 12px; border-bottom: 1px solid var(--line); font-size: 12px; color: var(--muted); letter-spacing: .5px; }
+    .seminfo .wk { color: var(--soon); margin-right: 12px; }
+
+    .cal-head { display: flex; align-items: center; justify-content: space-between; padding: 16px 2px; }
+    .cal-head .mlabel { font-size: 15px; letter-spacing: .5px; }
+    .cal-nav { background: none; border: 1px solid var(--line); color: var(--text); width: 36px; height: 36px; cursor: pointer; font-size: 18px; line-height: 1; }
+    .cal-nav:active { background: rgba(255,255,255,0.08); }
+    .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+    .cal-dow { text-align: center; font-size: 9px; letter-spacing: 1px; text-transform: uppercase; color: var(--faint); padding: 2px 0 6px; }
+    .cal-cell { min-height: 46px; border: 1px solid var(--line); background: rgba(255,255,255,0.012); padding: 5px;
+      display: flex; flex-direction: column; gap: 2px; cursor: pointer; }
+    .cal-cell.out { opacity: .32; }
+    .cal-cell.dim { opacity: .14; }
+    .cal-cell.today { border-color: var(--line-strong); }
+    .cal-cell.sel { background: rgba(255,255,255,0.09); border-color: #fff; }
+    .cal-cell .dnum { font-size: 11.5px; color: var(--muted); }
+    .cal-cell.today .dnum { color: #fff; font-weight: 600; }
+    .cal-dots { display: flex; flex-wrap: wrap; gap: 3px; margin-top: auto; align-items: center; }
+    .cal-dots i { width: 6px; height: 6px; border-radius: 50%; display: block; }
+    .cal-more { font-size: 8px; color: var(--faint); }
+
+    .day-detail { margin-top: 22px; }
+    .day-detail h3 { font-size: 12px; letter-spacing: 2px; text-transform: uppercase; color: var(--faint); margin: 0 0 12px; }
+    .drow { display: flex; align-items: center; gap: 12px; border: 1px solid var(--line); background: var(--panel); padding: 12px 14px; margin-bottom: 8px; cursor: pointer; }
+    .drow .dot { width: 9px; height: 9px; border-radius: 50%; flex: 0 0 auto; }
+    .drow .dsub { font-size: 15px; }
+    .drow.done .dsub { color: var(--muted); text-decoration: line-through; }
+    .drow .dmeta { margin-left: auto; font-size: 10.5px; letter-spacing: 1px; text-transform: uppercase; color: var(--faint); }
+    .day-empty { color: var(--faint); font-size: 12px; letter-spacing: 1px; padding: 8px 2px; }
+    .add-day { display: inline-block; margin-top: 8px; }
+
+    .form-err { color: var(--overdue); font-size: 12px; margin: 16px 0 0; letter-spacing: .3px; }
+
     /* ---------- Add button (solid white, sharp) ---------- */
     .add {
       position: fixed; left: 50%; transform: translateX(-50%);
@@ -237,7 +286,7 @@
   const { useState, useEffect, useRef, useCallback } = React;
 
   /* ---------- IndexedDB ---------- */
-  const DB_NAME = 'homework-tracker', DB_VER = 1;
+  const DB_NAME = 'homework-tracker', DB_VER = 2;
   let db;
   function openDB() {
     return new Promise((resolve, reject) => {
@@ -249,6 +298,7 @@
           const s = d.createObjectStore('attachments', { keyPath: 'id' });
           s.createIndex('homeworkId', 'homeworkId', { unique: false });
         }
+        if (!d.objectStoreNames.contains('semesters')) d.createObjectStore('semesters', { keyPath: 'id' });
       };
       req.onsuccess = () => resolve(req.result);
       req.onerror = () => reject(req.error);
@@ -263,6 +313,9 @@
   const delAtt = (id) => reqP(store('attachments', 'readwrite').delete(id));
   const getAllAtts = () => reqP(store('attachments', 'readonly').getAll());
   const getAttsFor = (hwId) => reqP(store('attachments', 'readonly').index('homeworkId').getAll(IDBKeyRange.only(hwId)));
+  const getAllSem = () => reqP(store('semesters', 'readonly').getAll());
+  const putSem = (o) => reqP(store('semesters', 'readwrite').put(o));
+  const delSemRec = (id) => reqP(store('semesters', 'readwrite').delete(id));
 
   const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
   const isImage = (a) => (a.type || '').startsWith('image/');
@@ -358,11 +411,11 @@
   }
 
   /* ---------- Sheet (add / edit) ---------- */
-  function Sheet({ initial, subjectColors, onClose, onSaved }) {
+  function Sheet({ initial, subjectColors, prefillDate, onClose, onSaved }) {
     const [subject, setSubject] = useState(initial ? initial.subject : '');
     const [classNo, setClassNo] = useState(initial ? (initial.classNo || '') : '');
     const [className, setClassName] = useState(initial ? initial.className : '');
-    const [dueDate, setDueDate] = useState(initial ? initial.dueDate : '');
+    const [dueDate, setDueDate] = useState(initial ? initial.dueDate : (prefillDate || ''));
     const [notes, setNotes] = useState(initial ? initial.notes : '');
     const [color, setColor] = useState(initial ? (initial.color || '') : '');
     const [staged, setStaged] = useState([]);
@@ -599,6 +652,147 @@
     );
   }
 
+  /* ---------- Semester create / edit sheet ---------- */
+  function SemesterSheet({ initial, onClose, onSaved, onDelete }) {
+    const [name, setName] = useState(initial ? initial.name : '');
+    const [start, setStart] = useState(initial ? initial.start : '');
+    const [end, setEnd] = useState(initial ? initial.end : '');
+    const [err, setErr] = useState('');
+
+    async function save() {
+      if (!name.trim()) { setErr('Please name the semester.'); return; }
+      if (!start || !end) { setErr('Please set a start and end date.'); return; }
+      if (end < start) { setErr('End date must be after the start date.'); return; }
+      const id = initial ? initial.id : uid();
+      await putSem({ id, name: name.trim(), start, end, createdAt: initial ? initial.createdAt : Date.now() });
+      onSaved(id);
+    }
+    return (
+      <div className="backdrop" onClick={(e) => { if (e.target.classList.contains('backdrop')) onClose(); }}>
+        <div className="sheet">
+          <h2>{initial ? 'Edit semester' : 'New semester'}</h2>
+          <label>Name</label>
+          <input type="text" value={name} onChange={e => { setName(e.target.value); setErr(''); }} placeholder="e.g. Fall 2026 · 1st Semester" autoComplete="off" />
+          <label>Starts</label>
+          <input type="date" value={start} onChange={e => { setStart(e.target.value); setErr(''); }} />
+          <label>Ends</label>
+          <input type="date" value={end} onChange={e => { setEnd(e.target.value); setErr(''); }} />
+          {err && <p className="form-err">{err}</p>}
+          <div className="sheet-actions">
+            {initial
+              ? <button className="btn ghost" onClick={() => onDelete(initial)}>Delete</button>
+              : <button className="btn ghost" onClick={onClose}>Cancel</button>}
+            <button className="btn primary" onClick={save}>Save</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  /* ---------- Calendar view ---------- */
+  const pad2c = (n) => String(n).padStart(2, '0');
+  const toIso = (d) => d.getFullYear() + '-' + pad2c(d.getMonth()+1) + '-' + pad2c(d.getDate());
+
+  function Calendar({ items, semesters, selId, onSelSem, onNewSem, onEditSem, onEditItem, onAddForDay }) {
+    const today = new Date(); today.setHours(0,0,0,0);
+    const todayIso = toIso(today);
+    const sem = semesters.find(s => s.id === selId) || null;
+
+    const [cursor, setCursor] = useState(() => {
+      const base = sem ? new Date(sem.start + 'T00:00:00') : today;
+      return new Date(base.getFullYear(), base.getMonth(), 1);
+    });
+    const [selDay, setSelDay] = useState(todayIso);
+
+    useEffect(() => {
+      if (sem) { const d = new Date(sem.start + 'T00:00:00'); setCursor(new Date(d.getFullYear(), d.getMonth(), 1)); }
+    }, [selId]);
+
+    const byDay = {};
+    for (const it of items) if (it.dueDate) (byDay[it.dueDate] = byDay[it.dueDate] || []).push(it);
+
+    const first = new Date(cursor.getFullYear(), cursor.getMonth(), 1);
+    const startOffset = (first.getDay() + 6) % 7; // Monday-first
+    const gridStart = new Date(first); gridStart.setDate(1 - startOffset);
+    const cells = [];
+    for (let i = 0; i < 42; i++) { const d = new Date(gridStart); d.setDate(gridStart.getDate() + i); cells.push(d); }
+
+    const monthLabel = cursor.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+    const dow = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+    const inSem = (iso) => sem ? (iso >= sem.start && iso <= sem.end) : true;
+    const move = (n) => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() + n, 1));
+
+    let weekInfo = null, range = null;
+    if (sem) {
+      const s = new Date(sem.start + 'T00:00:00'), e = new Date(sem.end + 'T00:00:00');
+      const fmt = (d) => d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+      range = fmt(s) + ' — ' + fmt(e);
+      const totalWeeks = Math.max(1, Math.ceil((e - s) / (7*86400000)) + 1);
+      if (today >= s && today <= e) weekInfo = 'Week ' + (Math.floor((today - s) / (7*86400000)) + 1) + ' / ' + totalWeeks;
+    }
+
+    const dayItems = (byDay[selDay] || []).slice().sort((a,b) => (a.done?1:0) - (b.done?1:0));
+    const fmtSel = new Date(selDay + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
+
+    return (
+      <div className="cal-wrap">
+        <div className="sembar">
+          <button className={'schip' + (!selId ? ' on' : '')} onClick={() => onSelSem(null)}>All</button>
+          {semesters.map(s => <button key={s.id} className={'schip' + (selId === s.id ? ' on' : '')} onClick={() => onSelSem(s.id)}>{s.name}</button>)}
+          <button className="schip add" onClick={onNewSem}>＋ Semester</button>
+        </div>
+        {sem &&
+          <div className="seminfo">
+            <span>{range}</span>
+            <span>{weekInfo && <span className="wk">{weekInfo}</span>} <button className="link" onClick={() => onEditSem(sem)}>Edit</button></span>
+          </div>}
+
+        <div className="cal-head">
+          <button className="cal-nav" onClick={() => move(-1)} aria-label="Previous month">‹</button>
+          <span className="mlabel">{monthLabel}</span>
+          <button className="cal-nav" onClick={() => move(1)} aria-label="Next month">›</button>
+        </div>
+
+        <div className="cal-grid">
+          {dow.map(d => <div key={d} className="cal-dow">{d}</div>)}
+          {cells.map((d, i) => {
+            const iso = toIso(d);
+            const out = d.getMonth() !== cursor.getMonth();
+            const its = byDay[iso] || [];
+            const cls = ['cal-cell'];
+            if (out) cls.push('out');
+            if (!inSem(iso)) cls.push('dim');
+            if (iso === todayIso) cls.push('today');
+            if (iso === selDay) cls.push('sel');
+            return (
+              <div key={i} className={cls.join(' ')} onClick={() => setSelDay(iso)}>
+                <span className="dnum">{d.getDate()}</span>
+                {its.length > 0 &&
+                  <div className="cal-dots">
+                    {its.slice(0,4).map((it, j) => <i key={j} style={{ background: it.done ? '#555' : (it.color || '#f5f5f7') }}></i>)}
+                    {its.length > 4 && <span className="cal-more">+{its.length - 4}</span>}
+                  </div>}
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="day-detail">
+          <h3>{fmtSel}</h3>
+          {dayItems.length
+            ? dayItems.map(it =>
+                <div key={it.id} className={'drow' + (it.done ? ' done' : '')} onClick={() => onEditItem(it)}>
+                  <span className="dot" style={{ background: it.color || '#f5f5f7' }}></span>
+                  <span className="dsub">{it.subject || '(no subject)'}</span>
+                  {it.classNo && <span className="dmeta">{it.classNo}</span>}
+                </div>)
+            : <div className="day-empty">Nothing due this day.</div>}
+          <button className="link add-day" onClick={() => onAddForDay(selDay)}>＋ Add for this day</button>
+        </div>
+      </div>
+    );
+  }
+
   /* ---------- App ---------- */
   function App() {
     const [items, setItems] = useState([]);
@@ -606,11 +800,15 @@
     const [filter, setFilter] = useState('todo');
     const [search, setSearch] = useState('');
     const [sheet, setSheet] = useState(null);
+    const [mode, setMode] = useState('list');           // 'list' | 'cal'
+    const [semesters, setSemesters] = useState([]);
+    const [selSem, setSelSem] = useState(() => localStorage.getItem('hw_sem') || null);
+    const [semSheet, setSemSheet] = useState(null);      // null | {} | {editing:sem}
     const urlsRef = useRef([]);
     const importRef = useRef(null);
 
     const load = useCallback(async () => {
-      const [hw, atts] = [await getAllHW(), await getAllAtts()];
+      const [hw, atts, sems] = [await getAllHW(), await getAllAtts(), await getAllSem()];
       urlsRef.current.forEach(URL.revokeObjectURL); urlsRef.current = [];
       const map = {};
       for (const a of atts) {
@@ -618,9 +816,18 @@
         (map[a.homeworkId] ||= []).push({ ...a, url });
       }
       setItems(hw); setAttsByHw(map);
+      setSemesters(sems.slice().sort((a, b) => (a.start || '').localeCompare(b.start || '')));
     }, []);
 
     useEffect(() => { openDB().then(d => { db = d; load(); }); }, []);
+
+    const chooseSem = (id) => { setSelSem(id); if (id) localStorage.setItem('hw_sem', id); else localStorage.removeItem('hw_sem'); };
+    const deleteSem = async (s) => {
+      if (!confirm('Delete this semester? (Your homework is not deleted.)')) return;
+      await delSemRec(s.id);
+      if (selSem === s.id) chooseSem(null);
+      setSemSheet(null); load();
+    };
 
     const openCount = items.filter(i => !i.done).length;
 
@@ -683,43 +890,56 @@
             <Ghost />
             <div className="wordmark">HOME<br/>W<span className="ring"></span>RK</div>
           </div>
+          <div className="viewtabs">
+            <button className={mode === 'list' ? 'active' : ''} onClick={() => setMode('list')}>List</button>
+            <button className={mode === 'cal' ? 'active' : ''} onClick={() => setMode('cal')}>Calendar</button>
+          </div>
         </header>
 
         <main>
-          <section className="hero">
-            <p className="eyebrow">Homework Tracker · Stay Ahead</p>
-            <h1 className="hero-title">Everything due,<br/><span className="dim">in one place.</span></h1>
-            <p className="hero-sub mono">{items.length === 0 ? '// no entries yet — add your first below' : openCount + ' pending · ' + (items.length - openCount) + ' done'}</p>
-          </section>
+          {mode === 'list' ? (
+            <React.Fragment>
+              <section className="hero">
+                <p className="eyebrow">Homework Tracker · Stay Ahead</p>
+                <h1 className="hero-title">Everything due,<br/><span className="dim">in one place.</span></h1>
+                <p className="hero-sub mono">{items.length === 0 ? '// no entries yet — add your first below' : openCount + ' pending · ' + (items.length - openCount) + ' done'}</p>
+              </section>
 
-          <div className="toolbar">
-            <input className="search" placeholder="Search…" value={search} onChange={e => setSearch(e.target.value)} />
-            <div className="filters">
-              {['todo','done','all'].map(f =>
-                <button key={f} className={filter === f ? 'active' : ''} onClick={() => setFilter(f)}>{f}</button>)}
-            </div>
-          </div>
-
-          {view.length === 0
-            ? <div className="empty">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.3"><rect x="4" y="4" width="16" height="16"/><path d="M8 9h8M8 13h6"/></svg>
-                <p>{filter === 'todo' ? 'All caught up' : 'Nothing here yet'}</p>
+              <div className="toolbar">
+                <input className="search" placeholder="Search…" value={search} onChange={e => setSearch(e.target.value)} />
+                <div className="filters">
+                  {['todo','done','all'].map(f =>
+                    <button key={f} className={filter === f ? 'active' : ''} onClick={() => setFilter(f)}>{f}</button>)}
+                </div>
               </div>
-            : view.map(it => <Card key={it.id} item={it} atts={attsByHw[it.id] || []} onToggle={toggle} onEdit={(i)=>setSheet({editing:i})} onDelete={del} onChanged={load} />)}
 
-          <div className="footer-tools">
-            <button className="link" onClick={remindAll}>🔔 Add to Calendar</button>
-            <button className="link" onClick={exportData}>Backup</button>
-            <button className="link" onClick={() => importRef.current.click()}>Restore</button>
-            <input ref={importRef} type="file" accept="application/json" hidden onChange={e => { if (e.target.files[0]) importData(e.target.files[0]); e.target.value = ''; }} />
-          </div>
+              {view.length === 0
+                ? <div className="empty">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.3"><rect x="4" y="4" width="16" height="16"/><path d="M8 9h8M8 13h6"/></svg>
+                    <p>{filter === 'todo' ? 'All caught up' : 'Nothing here yet'}</p>
+                  </div>
+                : view.map(it => <Card key={it.id} item={it} atts={attsByHw[it.id] || []} onToggle={toggle} onEdit={(i)=>setSheet({editing:i})} onDelete={del} onChanged={load} />)}
+
+              <div className="footer-tools">
+                <button className="link" onClick={remindAll}>🔔 Add to Calendar</button>
+                <button className="link" onClick={exportData}>Backup</button>
+                <button className="link" onClick={() => importRef.current.click()}>Restore</button>
+                <input ref={importRef} type="file" accept="application/json" hidden onChange={e => { if (e.target.files[0]) importData(e.target.files[0]); e.target.value = ''; }} />
+              </div>
+            </React.Fragment>
+          ) : (
+            <Calendar items={items} semesters={semesters} selId={selSem}
+              onSelSem={chooseSem} onNewSem={() => setSemSheet({})} onEditSem={(s) => setSemSheet({ editing: s })}
+              onEditItem={(i) => setSheet({ editing: i })} onAddForDay={(iso) => setSheet({ date: iso })} />
+          )}
         </main>
 
         <button className="add" onClick={() => setSheet({})} aria-label="Add homework">
           <span className="plus">＋</span> New Homework
         </button>
 
-        {sheet && <Sheet initial={sheet.editing || null} subjectColors={subjectColors} onClose={() => setSheet(null)} onSaved={() => { setSheet(null); load(); }} />}
+        {sheet && <Sheet initial={sheet.editing || null} prefillDate={sheet.date || ''} subjectColors={subjectColors} onClose={() => setSheet(null)} onSaved={() => { setSheet(null); load(); }} />}
+        {semSheet && <SemesterSheet initial={semSheet.editing || null} onClose={() => setSemSheet(null)} onDelete={deleteSem} onSaved={(id) => { setSemSheet(null); chooseSem(id); load(); }} />}
       </React.Fragment>
     );
   }
