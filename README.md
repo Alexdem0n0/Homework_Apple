@@ -16,6 +16,9 @@ server), and it **works offline** once installed.
 
 - Add homework with **subject**, **class**, **due / finish‑by date**, and **notes**
 - **Attach photos** (from camera or library) and **any files** to each homework
+- **Transcribe photos to text** — snap the homework off the board and the app
+  reads the text for you (on‑device OCR, English + Spanish). Then **Copy text**
+  with one tap, or **Download** the photos.
 - See a sorted list with **Overdue / Today / Tomorrow** highlighting
 - **Check things off** when finished; filter by *To do*, *Done*, or *All*
 - **Search** across subjects, classes and notes
@@ -86,9 +89,12 @@ and offline features, use Option A — iPhones need an `https://` link.)
 ## ❓ FAQ
 
 **Does this need internet?** Only the first time you open the link. After you add
-it to your home screen it works offline.
+it to your home screen it works offline. The **photo transcriber** also needs
+internet the first time you use it (to download the offline text‑recognition
+engine, a few MB); after that it works offline too.
 
-**Is my data private?** Yes — it never leaves your phone.
+**Is my data private?** Yes — it never leaves your phone. The transcription
+happens **on your device** — your photos are never uploaded anywhere.
 
 **Can I use it on Android too?** Yes. Open the link in Chrome and choose
 *Add to Home screen*.

@@ -146,6 +146,14 @@
       text-transform: uppercase; cursor: pointer; padding: 0; transition: color .2s; }
     .link:active { color: #fff; }
     .link.danger:active { color: var(--overdue); }
+    .link.busy { color: var(--soon); }
+
+    /* transcription block + photo tools */
+    .transcript { margin-top: 12px; border: 1px solid var(--line); border-left: 2px solid var(--line-strong);
+      background: rgba(255,255,255,0.02); padding: 11px 13px; font-size: 13px; line-height: 1.55;
+      color: rgba(255,255,255,0.72); white-space: pre-wrap; word-break: break-word; max-height: 240px; overflow: auto; }
+    .transcript .tlabel { display: block; font-size: 9.5px; letter-spacing: 2px; text-transform: uppercase; color: var(--faint); margin-bottom: 7px; }
+    .photo-tools { display: flex; flex-wrap: wrap; gap: 16px 20px; margin-top: 12px; }
 
     .empty { text-align: center; color: var(--faint); padding: 70px 20px; animation: cardIn .5s both; }
     .empty svg { width: 42px; height: 42px; opacity: .35; margin-bottom: 14px; }
@@ -192,6 +200,9 @@
     .file-btn:active { border-color: var(--line-strong); color: #fff; }
     .staged { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
     .staged .att .rm { color: var(--overdue); font-weight: 700; cursor: pointer; margin-left: 2px; }
+    .staged .att .ok { color: var(--soon); font-weight: 700; margin-left: 2px; }
+    .file-btn.wide { flex-basis: 100%; margin-top: 12px; }
+    .file-btn.busy { color: var(--soon); border-color: rgba(217,178,106,0.4); border-style: solid; cursor: default; }
     .sheet-actions { display: flex; gap: 12px; margin-top: 30px; }
     .btn { flex: 1; padding: 15px; font-family: inherit; font-size: 12px; letter-spacing: 2px; text-transform: uppercase; cursor: pointer; transition: transform .15s, opacity .2s; }
     .btn:active { transform: scale(.97); }
@@ -246,6 +257,31 @@
   const getAttsFor = (hwId) => reqP(store('attachments', 'readonly').index('homeworkId').getAll(IDBKeyRange.only(hwId)));
 
   const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+  const isImage = (a) => (a.type || '').startsWith('image/');
+
+  /* ---------- On-device OCR (Tesseract.js, loaded on first use) ---------- */
+  // Languages: English + Spanish, so board text in either language transcribes well.
+  const OCR_LANGS = 'eng+spa';
+  let _tessPromise = null;
+  function loadTesseract() {
+    if (window.Tesseract) return Promise.resolve(window.Tesseract);
+    if (_tessPromise) return _tessPromise;
+    _tessPromise = new Promise((res, rej) => {
+      const s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
+      s.onload = () => res(window.Tesseract);
+      s.onerror = () => { _tessPromise = null; rej(new Error('Could not load the transcriber. Check your connection and try again.')); };
+      document.head.appendChild(s);
+    });
+    return _tessPromise;
+  }
+  async function transcribeBlob(blob, onProgress) {
+    const T = await loadTesseract();
+    const { data } = await T.recognize(blob, OCR_LANGS, {
+      logger: (m) => { if (m.status === 'recognizing text' && onProgress) onProgress(Math.round(m.progress * 100)); }
+    });
+    return (data.text || '').replace(/\n{3,}/g, '\n\n').trim();
+  }
 
   const fmtDate = (iso) => iso ? new Date(iso + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '';
   function dueInfo(iso, done) {
@@ -279,6 +315,7 @@
     const [notes, setNotes] = useState(initial ? initial.notes : '');
     const [staged, setStaged] = useState([]);
     const [err, setErr] = useState(false);
+    const [ocr, setOcr] = useState(null); // {pct} while transcribing, null otherwise
     const subjectRef = useRef(null);
 
     useEffect(() => {
@@ -303,6 +340,26 @@
       return s.filter(x => x.id !== id);
     });
 
+    async function transcribeStaged() {
+      const todo = staged.filter(a => isImage(a) && !a.text);
+      if (!todo.length) return;
+      setOcr({ pct: 0, i: 0, n: todo.length });
+      try {
+        const results = {};
+        for (let i = 0; i < todo.length; i++) {
+          const a = todo[i];
+          results[a.id] = await transcribeBlob(a.blob, (pct) => setOcr({ pct, i: i + 1, n: todo.length }));
+        }
+        setStaged(s => s.map(x => results[x.id] !== undefined ? { ...x, text: results[x.id] } : x));
+        const combined = todo.map(a => results[a.id]).filter(Boolean).join('\n\n');
+        if (combined) setNotes(n => n ? (n.trimEnd() + '\n\n' + combined) : combined);
+      } catch (e) {
+        alert(e.message || 'Transcription failed.');
+      } finally {
+        setOcr(null);
+      }
+    }
+
     async function save() {
       const subj = subject.trim();
       if (!subj) { setErr(true); subjectRef.current && subjectRef.current.focus(); return; }
@@ -313,7 +370,8 @@
       const prev = initial ? await getAttsFor(id) : [];
       const stagedIds = new Set(staged.map(s => s.id));
       for (const p of prev) if (!stagedIds.has(p.id)) await delAtt(p.id);
-      for (const s of staged) if (!s.homeworkId) await putAtt({ id: s.id, homeworkId: id, name: s.name, type: s.type, blob: s.blob });
+      // upsert all staged so newly-added files AND transcriptions on existing photos persist
+      for (const s of staged) await putAtt({ id: s.id, homeworkId: id, name: s.name, type: s.type, blob: s.blob, text: s.text || '' });
       onSaved();
     }
 
@@ -348,10 +406,15 @@
             <div className="staged">
               {staged.map(a =>
                 <div className="att" key={a.id}>
-                  <span>{(a.type||'').startsWith('image/') ? '🖼' : '📎'}</span>
+                  <span>{isImage(a) ? '🖼' : '📎'}</span>
                   <span className="name">{a.name}</span>
+                  {a.text ? <span className="ok" title="Transcribed">✓</span> : null}
                   <span className="rm" onClick={() => removeStaged(a.id)}>✕</span>
                 </div>)}
+            </div>}
+          {staged.some(a => isImage(a) && !a.text) &&
+            <div className={'file-btn wide' + (ocr ? ' busy' : '')} onClick={ocr ? null : transcribeStaged}>
+              {ocr ? ('Transcribing ' + ocr.i + '/' + ocr.n + ' · ' + ocr.pct + '%') : '⛯ Transcribe photo text → notes'}
             </div>}
 
           <div className="sheet-actions">
@@ -367,8 +430,54 @@
   }
 
   /* ---------- Card ---------- */
-  function Card({ item, atts, onToggle, onEdit, onDelete }) {
+  function Card({ item, atts, onToggle, onEdit, onDelete, onChanged }) {
     const di = dueInfo(item.dueDate, item.done);
+    const [ocr, setOcr] = useState(null);
+    const [copied, setCopied] = useState(false);
+    const images = atts.filter(isImage);
+    const transcripts = atts.filter(a => a.text);
+    const combinedText = transcripts.map(a => a.text.trim()).filter(Boolean).join('\n\n');
+
+    async function transcribeCard() {
+      const todo = images.filter(a => !a.text);
+      if (!todo.length) return;
+      setOcr({ pct: 0, i: 0, n: todo.length });
+      try {
+        for (let i = 0; i < todo.length; i++) {
+          const a = todo[i];
+          const text = await transcribeBlob(a.blob, (pct) => setOcr({ pct, i: i + 1, n: todo.length }));
+          await putAtt({ id: a.id, homeworkId: a.homeworkId, name: a.name, type: a.type, blob: a.blob, text });
+        }
+        await onChanged();
+      } catch (e) {
+        alert(e.message || 'Transcription failed.');
+      } finally {
+        setOcr(null);
+      }
+    }
+
+    async function copyText() {
+      if (!combinedText) return;
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(combinedText);
+        } else {
+          const ta = document.createElement('textarea');
+          ta.value = combinedText; ta.style.position = 'fixed'; ta.style.opacity = '0';
+          document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove();
+        }
+        setCopied(true); setTimeout(() => setCopied(false), 1600);
+      } catch (e) { alert('Could not copy automatically — long-press the text to copy.'); }
+    }
+
+    function downloadImages() {
+      images.forEach((a, i) => setTimeout(() => {
+        const link = document.createElement('a');
+        link.href = a.url; link.download = a.name;
+        document.body.appendChild(link); link.click(); link.remove();
+      }, i * 500));
+    }
+
     return (
       <div className="card">
         <div className={'hw' + (item.done ? ' done' : '')}>
@@ -384,9 +493,23 @@
             {item.notes && <p className="notes">{item.notes}</p>}
             {atts.length > 0 &&
               <div className="attachments">
-                {atts.map(a => (a.type||'').startsWith('image/')
+                {atts.map(a => isImage(a)
                   ? <a key={a.id} href={a.url} target="_blank" rel="noopener"><img className="thumb" src={a.url} alt={a.name} /></a>
                   : <a key={a.id} className="att" href={a.url} download={a.name}>📎 <span className="name">{a.name}</span></a>)}
+              </div>}
+            {combinedText &&
+              <div className="transcript">
+                <span className="tlabel">Transcribed text</span>{combinedText}
+              </div>}
+            {images.length > 0 &&
+              <div className="photo-tools">
+                {images.some(a => !a.text) &&
+                  <button className={'link' + (ocr ? ' busy' : '')} onClick={ocr ? null : transcribeCard}>
+                    {ocr ? ('Transcribing ' + ocr.i + '/' + ocr.n + ' · ' + ocr.pct + '%') : '⛯ Transcribe photos'}
+                  </button>}
+                {combinedText &&
+                  <button className="link" onClick={copyText}>{copied ? '✓ Copied' : 'Copy text'}</button>}
+                <button className="link" onClick={downloadImages}>Download {images.length > 1 ? 'images' : 'image'}</button>
               </div>}
             <div className="row-actions">
               <button className="link" onClick={() => onEdit(item)}>Edit</button>
@@ -493,7 +616,7 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.3"><rect x="4" y="4" width="16" height="16"/><path d="M8 9h8M8 13h6"/></svg>
                 <p>{filter === 'todo' ? 'All caught up' : 'Nothing here yet'}</p>
               </div>
-            : view.map(it => <Card key={it.id} item={it} atts={attsByHw[it.id] || []} onToggle={toggle} onEdit={(i)=>setSheet({editing:i})} onDelete={del} />)}
+            : view.map(it => <Card key={it.id} item={it} atts={attsByHw[it.id] || []} onToggle={toggle} onEdit={(i)=>setSheet({editing:i})} onDelete={del} onChanged={load} />)}
 
           <div className="footer-tools">
             <button className="link" onClick={exportData}>Backup</button>
