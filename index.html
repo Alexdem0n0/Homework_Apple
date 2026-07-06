@@ -310,6 +310,8 @@
     .btn:active { transform: scale(.97); }
     .btn.primary { background: #fff; color: #000; border: none; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px; }
     .btn.ghost { background: #17171b; color: #e8e8ec; border: 1px solid var(--line-strong); font-weight: 500; }
+    .btn.danger { background: #17171b; color: #e06666; border: 1px solid rgba(224,102,102,0.4); font-weight: 500; }
+    .btn.wide-one { width: 100%; }
 
     /* round save / cancel buttons inside a sheet (match the corner add button) */
     .sheet-fabs {
@@ -793,7 +795,12 @@
     return (
       <div className="backdrop" onClick={(e) => { if (e.target.classList.contains('backdrop')) onClose(); }}>
         <div className="sheet">
-          <h2>{initial ? 'Edit semester' : 'New semester'}</h2>
+          <div className="sheet-top">
+            <h2>{initial ? 'Edit semester' : 'New semester'}</h2>
+            <button className="sheet-x" onClick={onClose} aria-label="Close">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+            </button>
+          </div>
           <label>Name</label>
           <input type="text" value={name} onChange={e => { setName(e.target.value); setErr(''); }} placeholder="e.g. Fall 2026 · 1st Semester" autoComplete="off" />
           <label>Starts</label>
@@ -801,12 +808,17 @@
           <label>Ends</label>
           <input type="date" value={end} onChange={e => { setEnd(e.target.value); setErr(''); }} />
           {err && <p className="form-err">{err}</p>}
-          <div className="sheet-actions">
-            {initial
-              ? <button className="btn ghost" onClick={() => onDelete(initial)}>Delete</button>
-              : <button className="btn ghost" onClick={onClose}>Cancel</button>}
-            <button className="btn primary" onClick={save}>Save</button>
-          </div>
+          {initial &&
+            <div className="sheet-actions">
+              <button className="btn danger wide-one" onClick={() => onDelete(initial)}>Delete semester</button>
+            </div>}
+          <div style={{ height: '78px' }}></div>
+        </div>
+
+        <div className="sheet-fabs">
+          <button className="fab save" onClick={save} aria-label={initial ? 'Save changes' : 'Save semester'}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12l5 5L20 6"/></svg>
+          </button>
         </div>
       </div>
     );
@@ -941,7 +953,12 @@
     return (
       <div className="backdrop" onClick={(e) => { if (e.target.classList.contains('backdrop')) onClose(); }}>
         <div className="sheet">
-          <h2>{initial ? 'Edit class' : 'New class'}</h2>
+          <div className="sheet-top">
+            <h2>{initial ? 'Edit class' : 'New class'}</h2>
+            <button className="sheet-x" onClick={onClose} aria-label="Close">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+            </button>
+          </div>
           <label>Subject *</label>
           <input type="text" value={subject} onChange={e => onSub(e.target.value)} placeholder="e.g. Mathematics" autoComplete="off" style={color ? { color } : undefined} />
 
@@ -965,11 +982,17 @@
           <input type="text" value={room} onChange={e => setRoom(e.target.value)} placeholder="e.g. Room 204" autoComplete="off" />
 
           {err && <p className="form-err">{err}</p>}
-          <div className="sheet-actions">
-            {initial ? <button className="btn ghost" onClick={() => onDelete(initial)}>Delete</button>
-                     : <button className="btn ghost" onClick={onClose}>Cancel</button>}
-            <button className="btn primary" onClick={save}>Save</button>
-          </div>
+          {initial &&
+            <div className="sheet-actions">
+              <button className="btn danger wide-one" onClick={() => onDelete(initial)}>Delete class</button>
+            </div>}
+          <div style={{ height: '78px' }}></div>
+        </div>
+
+        <div className="sheet-fabs">
+          <button className="fab save" onClick={save} aria-label={initial ? 'Save changes' : 'Save class'}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12l5 5L20 6"/></svg>
+          </button>
         </div>
       </div>
     );
