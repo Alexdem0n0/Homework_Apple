@@ -1,118 +1,158 @@
 # 👻 Homework Tracker
 
-A tiny home‑screen app for your iPhone to keep track of your homework — by
-**subject**, **class** and **due date** — with **photos and files** attached to
-each entry. You fill in a quick form, and everything shows up in a tidy list you
-can check off.
+A slim, offline‑first home‑screen app for tracking homework — by **subject**,
+**class**, and **due date** — with **photos and files** attached to each entry.
+No account, no backend, no ads: just add it to your phone's home screen and go.
 
-It's built with **React** and styled to match the **PHANTOM SECURE** look:
-minimalist, pure‑black background with a faint white grid, monochrome type, and
-the ghost mark as the app icon.
+Styled to be minimal on purpose: pure‑black background, faint white grid,
+monochrome type, a ghost as the mark. Built with **React** (no build step —
+it compiles right in the browser) as a single‑file **Progressive Web App
+(PWA)**, so it installs like a real app and works fully offline once loaded.
 
-Everything is stored **privately on your own phone** (nothing is uploaded to any
-server), and it **works offline** once installed.
+> This started as a personal project to keep track of college homework, and
+> is shared here in case it's useful to anyone else who wants something
+> slimmer than a full task‑management app. Feel free to use it, fork it, or
+> rip out whatever pieces are useful to you.
 
-## ✨ What it does
+## ✨ Features
 
-- Add homework with **subject**, **class**, **due / finish‑by date**, and **notes**
-- **Attach photos** (from camera or library) and **any files** to each homework
-- **Transcribe photos to text** — snap the homework off the board and the app
-  reads the text for you (on‑device OCR, English + Spanish). Then **Copy text**
-  with one tap, or **Download** the photos.
-- **Automatically ordered by urgency** — overdue and soonest‑due show first, the
-  far‑away ones last, and finished homework drops to the bottom
-- **Colour‑code your subjects** — pick a colour and the subject title shows in it
-  (and it's remembered, so every "Maths" is the same colour)
-- **Reminders in your iPhone Calendar** — tap *🔔 Remind me* on any homework and
-  it adds a Calendar event that alerts you the day before and the morning it's
-  due, so you get real notifications even when the app is closed
-- **Calendar view** — a month grid of your homework by due date, scoped to
-  semesters you define yourself
-- **Weekly schedule (horario)** — build your fixed weekly class timetable, then
-  **download it as an image** to use as a home‑screen widget (with a photo‑widget
-  app like Widgetsmith)
-- **Check things off** when finished; filter by *To do*, *Done*, or *All*
-- **Search** across subjects, classes and notes
-- **Backup / Restore** your data as a single file (great before switching phones)
+- **Add homework** with subject, class number/section (free text), due date, and notes
+- **Attach photos and files** (camera or library) to any homework entry
+- **On‑device OCR** — snap a photo of the board and the app transcribes it to
+  text (English + Spanish), with one‑tap **Copy text** and **Download images**
+- **Sorted by urgency** automatically — soonest‑due first, done items sink to the bottom
+- **Per‑subject colors** — pick a color once and every homework for that subject
+  shows in it
+- **Real reminders** — adds an event to your phone's **Calendar app** (with
+  alerts the day before and the morning it's due), working around the fact that
+  browsers can't send background notifications on iOS
+- **Calendar view** — a month grid of homework due dates, scoped to semesters you define
+- **Weekly class schedule (horario)** — build a fixed weekly timetable
+  (including weekends) and **download it as a compact image** to use as a
+  home‑screen widget via an app like Widgetsmith
+- **Search & filters** — To do / Done / All, plus text search across subjects/classes/notes
+- **Backup & restore** — export all your data to one file, import it back (e.g. on a new phone)
+- **100% local** — everything is stored on your device only; nothing is ever uploaded anywhere
 
-## 📲 How to put it on your iPhone home screen
+## 🧱 Tech stack
 
-You have two easy options.
+- **React 18** (via CDN, `<script type="text/babel">` — no bundler, no `npm install`)
+- **IndexedDB** for local storage of homework, attachments, semesters, and classes
+- **[Tesseract.js](https://github.com/naptha/tesseract.js)** for on‑device OCR (loaded lazily, only when you use the transcribe feature)
+- **Canvas 2D API** to render the schedule widget image
+- **iCalendar (.ics)** generation for Calendar reminders
+- A hand‑rolled **service worker** for offline caching (PWA)
 
-### Option A — Host it free with GitHub Pages (recommended)
+There is no backend, no build pipeline, and no third‑party analytics.
 
-This gives you a permanent web link you can open anywhere.
+## 📲 Getting started (just want to use it)
 
-1. On GitHub, open this repository → **Settings** → **Pages**.
-2. Under **Build and deployment → Source**, choose **Deploy from a branch**.
-3. Pick the branch `claude/iphone-homework-tracker-t4kpil` (or `main` after you
-   merge) and the `/ (root)` folder, then **Save**.
-4. Wait ~1 minute, then refresh. GitHub shows a link like
-   `https://<your-username>.github.io/Homework_Apple/`.
-5. Open that link in **Safari** on your iPhone.
-6. Tap the **Share** button (the square with an arrow) → **Add to Home Screen** →
-   **Add**.
-7. Done! Tap the new **Homework** icon on your home screen — it opens full‑screen
-   like a real app. 🎉
+### 1. Open the app
 
-### Option B — Try it quickly on a computer first
+Once GitHub Pages is enabled for this repo, the app is available at a URL like:
 
-Any static file server works. For example, in this folder run:
+```
+https://<owner>.github.io/Homework_Apple/
+```
+
+(Check the repo's **Settings → Pages** for the exact live link, or the
+**About** section on the right side of the repo page.)
+
+### 2. Install it on your phone
+
+**iPhone (Safari):**
+1. Open the link above in **Safari** (must be Safari, not Chrome or an in‑app browser).
+2. Tap the **Share** button → **Add to Home Screen** → **Add**.
+3. Open the new icon from your home screen — it launches full‑screen, like a native app.
+
+**Android (Chrome):** open the link → menu (⋮) → **Add to Home screen**.
+
+That's it — no App Store, no account, no install size limits.
+
+## 🛠 Running it yourself / contributing
+
+Because there's no build step, running it locally is just serving static files:
 
 ```bash
+git clone https://github.com/<owner>/Homework_Apple.git
+cd Homework_Apple
 python3 -m http.server 8000
 ```
 
-Then open `http://localhost:8000` in your browser. (For the home‑screen install
-and offline features, use Option A — iPhones need an `https://` link.)
+Then open `http://localhost:8000` in your browser. (Home‑screen install and
+full offline support require `https://`, so use GitHub Pages or another
+static host for that.)
 
-## 🧭 How to use it
-
-- Tap the big **+** button to add homework. Fill in the subject (required), and
-  optionally the class, a due date, and notes.
-- Tap **📷 Add photo** to snap or pick a picture, or **📎 Add file** to attach a
-  document (PDF, etc.). You can add several.
-- Tap **Save**.
-- In the list, tap the **square** on the left to mark a homework **done**.
-- Tap **Edit** to change anything, or **Delete** to remove it.
-- Use the **To do / Done / All** chips and the **search box** to find things.
-- Tap a photo to view it full size, or a file chip to open/download it.
-
-## 💾 About your data & backups
-
-- Your homework and attachments live in your browser's private storage
-  (IndexedDB) **on this device only**. They are not sent anywhere.
-- Because it's on‑device, clearing Safari's website data, or deleting the
-  home‑screen app, can remove your homework. So every now and then tap
-  **⬇︎ Backup (export)** to save a `.json` file (to Files / iCloud). To bring it
-  back — for example on a new phone — open the app and tap **⬆︎ Restore (import)**
-  and pick that file.
-
-## 🗂 What's in this project
+**Project structure:**
 
 | File | Purpose |
 |------|---------|
-| `index.html` | The whole app (layout, styling and logic in one file) |
-| `manifest.webmanifest` | Makes it installable as a home‑screen app |
-| `sw.js` | Service worker so the app works offline |
-| `icons/` | The home‑screen app icon in several sizes |
+| `index.html` | The entire app — layout, styling, and logic (all React components live in one file) |
+| `manifest.webmanifest` | PWA manifest (name, icons, theme, display mode) |
+| `sw.js` | Service worker for offline caching |
+| `icons/` | Home‑screen app icons (the ghost mark) in the required sizes |
+
+**Making changes:** everything is plain JSX inside a single `<script type="text/babel">`
+block in `index.html`, transpiled in‑browser by Babel Standalone — edit it like
+a normal React file, no build/watch process needed. Bump the `CACHE` version
+string at the top of `sw.js` whenever you change `index.html`, so installed
+copies pick up the update.
+
+Issues and pull requests are welcome — this is a small personal project, so
+please keep contributions focused (bug fixes, small feature additions) rather
+than large rewrites.
+
+## 🔒 Privacy — what's public vs. what's private
+
+This repository is public, but **your homework data never is**:
+
+- This repo contains only the **app's source code** — the UI, styling, and logic.
+- Everything you enter into the app — homework, notes, due dates, photos,
+  files, calendar, and schedule — is stored **locally on your own device**
+  (in the browser's IndexedDB), and is never sent to any server.
+- Every person who installs the app gets their own **empty, independent**
+  local copy. There's no shared database — nobody else can ever see your data.
+- The photo‑transcription (OCR) also runs **entirely on your device**; photos
+  are never uploaded anywhere, even to transcribe them.
+- Because your data lives only on your device, clearing your browser's site
+  data (or deleting the home‑screen app) can erase it. Use **⬇︎ Backup (export)**
+  regularly to save a `.json` file, and **⬆︎ Restore (import)** to bring it back.
+
+## 🧭 Usage guide
+
+- Tap **+** to add homework — subject is required; class, due date, notes, and
+  attachments are optional.
+- Tap **📷 Add photo** / **📎 Add file** to attach things; add several if you need to.
+- On a saved homework with photos, tap **Transcribe** to run OCR, then
+  **Copy all text** or **Download images**.
+- Tap the checkbox to mark homework done; **Edit** or **Delete** as needed.
+- Use **To do / Done / All** chips and the search box to filter.
+- Tap **🔔 Remind me** on a homework (or **🔔 Add to Calendar** for all of them)
+  to add reminders to your phone's Calendar app.
+- Switch to the **Calendar** tab to see homework due dates on a month grid,
+  scoped to semesters you define yourself.
+- Switch to the **Schedule** tab to build your fixed weekly class timetable
+  (weekdays and weekends), then tap **Download image** to get a widget‑ready PNG.
 
 ## ❓ FAQ
 
-**Does this need internet?** Only the first time you open the link. After you add
-it to your home screen it works offline. The **photo transcriber** also needs
-internet the first time you use it (to download the offline text‑recognition
-engine, a few MB); after that it works offline too.
+**Does this need internet?** Only the first time you open the link (and the
+first time you use photo transcription, to download the OCR engine — a few
+MB). After that, everything works fully offline.
 
-**Is my data private?** Yes — it never leaves your phone. The transcription
-happens **on your device** — your photos are never uploaded anywhere.
+**Is my data private?** Yes — see the [Privacy](#-privacy--whats-public-vs-whats-private)
+section above. Nothing is uploaded, ever.
 
-**Can I use it on Android too?** Yes. Open the link in Chrome and choose
-*Add to Home screen*.
+**Can I use it on Android?** Yes — open the link in Chrome and choose **Add to Home screen**.
 
-**How do notifications work?** iPhone doesn't let a web app schedule background
-alarms on its own, so reminders go through your **Calendar** instead. Tap
-*🔔 Remind me* on a homework (or *🔔 Add to Calendar* at the bottom to add all of
-them). Your iPhone will open Calendar and ask to add the event; once added, the
-Calendar app notifies you **the day before and the morning it's due** — even if
-the Homework app is closed.
+**How do notifications work?** iOS doesn't allow web apps to send background
+notifications on their own, so reminders go through the **Calendar app**
+instead — tap **🔔 Remind me**, confirm adding the event, and your phone will
+notify you the day before and the morning it's due, even with the app closed.
+
+**Can I fork this for my own use?** Yes — it's MIT licensed. Fork it, reskin
+it, strip out what you don't need.
+
+## 📄 License
+
+[MIT](./LICENSE) — free to use, modify, and share.
