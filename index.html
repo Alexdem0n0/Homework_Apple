@@ -1,16 +1,16 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#000000" />
-  <title>Tareas</title>
+  <title>Homework</title>
 
   <!-- Add-to-home-screen / PWA -->
   <link rel="manifest" href="manifest.webmanifest" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="Tareas" />
+  <meta name="apple-mobile-web-app-title" content="Homework" />
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
   <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
 
@@ -318,22 +318,22 @@
   <div class="ticks"><span class="tl"></span><span class="tr"></span></div>
   <div class="watermark mono">Alex__dem0n</div>
 
-  <div id="root"><div id="boot" class="boot-msg mono">Cargando<span class="dots"></span></div></div>
+  <div id="root"><div id="boot" class="boot-msg mono">Loading<span class="dots"></span></div></div>
 
   <script>
     // Surface real script/runtime failures instead of leaving a blank screen.
     window.addEventListener('error', function (e) {
       var boot = document.getElementById('boot');
       if (!boot) return;
-      var where = e.filename ? e.filename.split('/').pop() + (e.lineno ? ':' + e.lineno : '') : (e.target && e.target.src ? e.target.src.split('/').pop() : 'archivo desconocido');
-      var msg = e.message || (e.error && e.error.message) || 'un script no se pudo cargar';
-      boot.innerHTML = "Algo salió mal al cargar la app.<br><span style='opacity:.7'>" +
-        String(msg).replace(/</g, '&lt;') + "<br>(" + where.replace(/</g, '&lt;') + ")</span><br>Haz una captura y envíamela.";
+      var where = e.filename ? e.filename.split('/').pop() + (e.lineno ? ':' + e.lineno : '') : (e.target && e.target.src ? e.target.src.split('/').pop() : 'unknown file');
+      var msg = e.message || (e.error && e.error.message) || 'a script failed to load';
+      boot.innerHTML = "Something went wrong loading the app.<br><span style='opacity:.7'>" +
+        String(msg).replace(/</g, '&lt;') + "<br>(" + where.replace(/</g, '&lt;') + ")</span><br>Please screenshot this and send it back.";
     }, true);
     setTimeout(function () {
       var boot = document.getElementById('boot');
       if (boot && !window.React) {
-        boot.innerHTML = "Sigue cargando&hellip; puede tardar unos segundos con conexión lenta.<br>Si no desaparece, revisa tu conexión y recarga.";
+        boot.innerHTML = "Still loading&hellip; this can take a few seconds on a slow connection.<br>If this doesn't go away, check your connection and reload.";
       }
     }, 8000);
   </script>
@@ -346,7 +346,7 @@
   <script type="text/plain" id="app-source">
   const { useState, useEffect, useRef, useCallback } = React;
 
-  const LOC = 'es-ES';
+  const LOC = 'en-US';
 
   /* ---------- IndexedDB ---------- */
   const DB_NAME = 'homework-tracker', DB_VER = 3;
@@ -397,7 +397,7 @@
       const s = document.createElement('script');
       s.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
       s.onload = () => res(window.Tesseract);
-      s.onerror = () => { _tessPromise = null; rej(new Error('No se pudo cargar el transcriptor. Revisa tu conexión e inténtalo de nuevo.')); };
+      s.onerror = () => { _tessPromise = null; rej(new Error('Could not load the transcriber. Check your connection and try again.')); };
       document.head.appendChild(s);
     });
     return _tessPromise;
@@ -410,23 +410,23 @@
     return (data.text || '').replace(/\n{3,}/g, '\n\n').trim();
   }
 
-  const fmtDate = (iso) => iso ? new Date(iso + 'T00:00:00').toLocaleDateString(LOC, { day: 'numeric', month: 'short' }) : '';
+  const fmtDate = (iso) => iso ? new Date(iso + 'T00:00:00').toLocaleDateString(LOC, { month: 'short', day: 'numeric' }) : '';
   function dueInfo(iso, done) {
-    if (!iso) return { cls: '', label: 'Sin fecha' };
+    if (!iso) return { cls: '', label: 'No date' };
     const today = new Date(); today.setHours(0,0,0,0);
     const days = Math.round((new Date(iso + 'T00:00:00') - today) / 86400000);
     if (done) return { cls: '', label: fmtDate(iso) };
-    if (days < 0) return { cls: 'overdue', label: 'Atrasada · ' + fmtDate(iso) };
-    if (days === 0) return { cls: 'soon', label: 'Hoy' };
-    if (days === 1) return { cls: 'soon', label: 'Mañana' };
-    if (days <= 3) return { cls: 'soon', label: 'En ' + days + ' días' };
+    if (days < 0) return { cls: 'overdue', label: 'Overdue · ' + fmtDate(iso) };
+    if (days === 0) return { cls: 'soon', label: 'Today' };
+    if (days === 1) return { cls: 'soon', label: 'Tomorrow' };
+    if (days <= 3) return { cls: 'soon', label: 'In ' + days + ' days' };
     return { cls: '', label: fmtDate(iso) };
   }
 
   /* ---------- Subject colours & days ---------- */
   const COLORS = ['#e06666', '#e9a23b', '#ead24a', '#5fd08a', '#5cc7e0', '#7aa2ff', '#b98bff', '#ff8ac4'];
-  const DAYS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
-  const DAYS_SHORT = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+  const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+  const DAYS_SHORT = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
   /* ---------- Calendar reminders (.ics — real iOS notifications via Calendar) ---------- */
   const pad2 = (n) => String(n).padStart(2, '0');
@@ -436,11 +436,11 @@
            pad2(d.getUTCHours()) + pad2(d.getUTCMinutes()) + pad2(d.getUTCSeconds()) + 'Z';
   }
   const icsLocal = (iso, h, m) => iso.replace(/-/g, '') + 'T' + pad2(h) + pad2(m) + '00';
-  function hwTitle(item) { return (item.title && item.title.trim()) || item.subject || 'Tarea'; }
+  function hwTitle(item) { return (item.title && item.title.trim()) || item.subject || 'Homework'; }
   function vevent(item) {
     if (!item.dueDate) return '';
-    const summary = 'Tarea: ' + hwTitle(item);
-    const desc = [item.subject ? ('Materia: ' + item.subject) : '', item.className ? ('Clase: ' + item.className) : '', item.notes || ''].filter(Boolean).join('\\n');
+    const summary = 'Homework: ' + hwTitle(item);
+    const desc = [item.subject ? ('Subject: ' + item.subject) : '', item.className ? ('Class: ' + item.className) : '', item.notes || ''].filter(Boolean).join('\\n');
     const alarm = (trig) => ['BEGIN:VALARM', 'ACTION:DISPLAY', 'DESCRIPTION:' + icsEsc(summary), 'TRIGGER:' + trig, 'END:VALARM'];
     return [
       'BEGIN:VEVENT',
@@ -458,7 +458,7 @@
   function buildICS(items) {
     const events = items.map(vevent).filter(Boolean);
     if (!events.length) return null;
-    return ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Homework Tracker//ES', 'CALSCALE:GREGORIAN', ...events, 'END:VCALENDAR'].join('\r\n');
+    return ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Homework Tracker//EN', 'CALSCALE:GREGORIAN', ...events, 'END:VCALENDAR'].join('\r\n');
   }
   function downloadICS(filename, text) {
     const blob = new Blob([text], { type: 'text/calendar' });
@@ -523,7 +523,7 @@
     }, []);
 
     const addFiles = (fileList) => {
-      const added = Array.from(fileList).map(f => ({ id: uid(), name: f.name || ('foto-' + Date.now() + '.jpg'), type: f.type, blob: f, url: URL.createObjectURL(f) }));
+      const added = Array.from(fileList).map(f => ({ id: uid(), name: f.name || ('photo-' + Date.now() + '.jpg'), type: f.type, blob: f, url: URL.createObjectURL(f) }));
       setStaged(s => [...s, ...added]);
     };
     const removeStaged = (id) => setStaged(s => {
@@ -546,7 +546,7 @@
         const combined = todo.map(a => results[a.id]).filter(Boolean).join('\n\n');
         if (combined) setNotes(n => n ? (n.trimEnd() + '\n\n' + combined) : combined);
       } catch (e) {
-        alert(e.message || 'La transcripción falló.');
+        alert(e.message || 'Transcription failed.');
       } finally {
         setOcr(null);
       }
@@ -570,13 +570,13 @@
     return (
       <div className="backdrop" onClick={(e) => { if (e.target.classList.contains('backdrop')) onClose(); }}>
         <div className="sheet">
-          <h2>{initial ? 'Editar tarea' : 'Nueva tarea'}</h2>
+          <h2>{initial ? 'Edit homework' : 'New homework'}</h2>
 
-          <label>Título de la tarea</label>
+          <label>Homework title</label>
           <input ref={titleRef} type="text" className={err ? 'err' : ''} value={title}
-            onChange={e => { setTitle(e.target.value); setErr(false); }} placeholder="p. ej. Ejercicios pág. 42" autoComplete="off" />
+            onChange={e => { setTitle(e.target.value); setErr(false); }} placeholder="e.g. Exercises page 42" autoComplete="off" />
 
-          <label>Materia</label>
+          <label>Subject</label>
           {classSubjects.length > 0 &&
             <div className="subjchips">
               {classSubjects.map(cs =>
@@ -587,37 +587,37 @@
                 </button>)}
             </div>}
           <input type="text" value={subject} onChange={e => onSubjectChange(e.target.value)}
-            placeholder={classSubjects.length ? 'o escribe una materia nueva' : 'p. ej. Matemáticas'} autoComplete="off"
+            placeholder={classSubjects.length ? 'or type a new subject' : 'e.g. Mathematics'} autoComplete="off"
             style={color ? { color } : undefined} />
           <p className="field-help">
             {classSubjects.length
-              ? 'Toca una de tus clases del horario, o escribe una. Puedes dejarlo en blanco (tarea sin clase).'
-              : 'Opcional. Crea clases en la pestaña Horario para elegirlas aquí con un toque.'}
+              ? 'Tap one of your schedule classes, or type one. You can leave it blank (homework with no class).'
+              : 'Optional. Add classes in the Schedule tab to pick them here with one tap.'}
           </p>
 
-          <label>Color</label>
+          <label>Colour</label>
           <div className="swatches">
-            <button type="button" className={'swatch none' + (color ? '' : ' on')} onClick={() => pickColor('')} title="Blanco (por defecto)"></button>
+            <button type="button" className={'swatch none' + (color ? '' : ' on')} onClick={() => pickColor('')} title="Default (white)"></button>
             {COLORS.map(c =>
               <button type="button" key={c} className={'swatch' + (color === c ? ' on' : '')}
                 style={{ background: c }} onClick={() => pickColor(c)} title={c}></button>)}
           </div>
 
-          <label>Clase / grupo (opcional)</label>
-          <input type="text" value={className} onChange={e => setClassName(e.target.value)} placeholder="p. ej. 10-B · Grupo 7" autoComplete="off" />
+          <label>Class / group (optional)</label>
+          <input type="text" value={className} onChange={e => setClassName(e.target.value)} placeholder="e.g. 10-B · Group 7" autoComplete="off" />
 
-          <label>Fecha de entrega</label>
+          <label>Due / finish by</label>
           <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} />
 
-          <label>Notas</label>
-          <textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Páginas, preguntas, detalles…" />
+          <label>Notes</label>
+          <textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Pages, questions, details…" />
 
-          <label>Adjuntos — fotos y archivos</label>
+          <label>Attachments — photos &amp; files</label>
           <div className="file-btns">
-            <label className="file-btn">＋ Foto
+            <label className="file-btn">＋ Photo
               <input type="file" accept="image/*" capture="environment" multiple hidden onChange={e => { addFiles(e.target.files); e.target.value = ''; }} />
             </label>
-            <label className="file-btn">＋ Archivo
+            <label className="file-btn">＋ File
               <input type="file" multiple hidden onChange={e => { addFiles(e.target.files); e.target.value = ''; }} />
             </label>
           </div>
@@ -627,20 +627,20 @@
                 <div className="att" key={a.id}>
                   <span>{isImage(a) ? '🖼' : '📎'}</span>
                   <span className="name">{a.name}</span>
-                  {a.text ? <span className="ok" title="Transcrita">✓</span> : null}
+                  {a.text ? <span className="ok" title="Transcribed">✓</span> : null}
                   <span className="rm" onClick={() => removeStaged(a.id)}>✕</span>
                 </div>)}
             </div>}
           {staged.some(a => isImage(a) && !a.text) &&
             <div className={'file-btn wide' + (ocr ? ' busy' : '')} onClick={ocr ? null : transcribeStaged}>
-              {ocr ? ('Transcribiendo ' + ocr.i + '/' + ocr.n + ' · ' + ocr.pct + '%') : '⛯ Transcribir texto de las fotos → notas'}
+              {ocr ? ('Transcribing ' + ocr.i + '/' + ocr.n + ' · ' + ocr.pct + '%') : '⛯ Transcribe photo text → notes'}
             </div>}
 
           <div className="sheet-actions">
-            <button className="btn ghost" onClick={onClose}>Cancelar</button>
+            <button className="btn ghost" onClick={onClose}>Cancel</button>
             <button className="btn primary" onClick={save}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7Z"/></svg>
-              Guardar
+              Save
             </button>
           </div>
         </div>
@@ -656,7 +656,7 @@
     const images = atts.filter(isImage);
     const transcripts = atts.filter(a => a.text);
     const combinedText = transcripts.map(a => a.text.trim()).filter(Boolean).join('\n\n');
-    const displayTitle = (item.title && item.title.trim()) || item.subject || '(sin título)';
+    const displayTitle = (item.title && item.title.trim()) || item.subject || '(untitled)';
     const showSubjectLine = item.title && item.title.trim() && item.subject;
 
     async function transcribeCard() {
@@ -671,7 +671,7 @@
         }
         await onChanged();
       } catch (e) {
-        alert(e.message || 'La transcripción falló.');
+        alert(e.message || 'Transcription failed.');
       } finally {
         setOcr(null);
       }
@@ -688,7 +688,7 @@
           document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove();
         }
         setCopied(true); setTimeout(() => setCopied(false), 1600);
-      } catch (e) { alert('No se pudo copiar automáticamente — mantén pulsado el texto para copiarlo.'); }
+      } catch (e) { alert('Could not copy automatically — long-press the text to copy.'); }
     }
 
     function downloadImages() {
@@ -702,7 +702,7 @@
     return (
       <div className="card">
         <div className={'hw' + (item.done ? ' done' : '')}>
-          <button className="check" onClick={() => onToggle(item)} aria-label="Marcar como hecha">
+          <button className="check" onClick={() => onToggle(item)} aria-label="Toggle done">
             <svg viewBox="0 0 24 24" fill="none" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12l5 5L20 6"/></svg>
           </button>
           <div className="body">
@@ -722,23 +722,23 @@
               </div>}
             {combinedText &&
               <div className="transcript">
-                <span className="tlabel">Texto transcrito</span>{combinedText}
+                <span className="tlabel">Transcribed text</span>{combinedText}
               </div>}
             {images.length > 0 &&
               <div className="photo-tools">
                 {images.some(a => !a.text) &&
                   <button className={'link' + (ocr ? ' busy' : '')} onClick={ocr ? null : transcribeCard}>
-                    {ocr ? ('Transcribiendo ' + ocr.i + '/' + ocr.n + ' · ' + ocr.pct + '%') : '⛯ Transcribir fotos'}
+                    {ocr ? ('Transcribing ' + ocr.i + '/' + ocr.n + ' · ' + ocr.pct + '%') : '⛯ Transcribe photos'}
                   </button>}
                 {combinedText &&
-                  <button className="link" onClick={copyText}>{copied ? '✓ Copiado' : 'Copiar texto'}</button>}
-                <button className="link" onClick={downloadImages}>Descargar {images.length > 1 ? 'imágenes' : 'imagen'}</button>
+                  <button className="link" onClick={copyText}>{copied ? '✓ Copied' : 'Copy text'}</button>}
+                <button className="link" onClick={downloadImages}>Download {images.length > 1 ? 'images' : 'image'}</button>
               </div>}
             <div className="row-actions">
-              <button className="link" onClick={() => onEdit(item)}>Editar</button>
+              <button className="link" onClick={() => onEdit(item)}>Edit</button>
               {item.dueDate && !item.done &&
-                <button className="link" onClick={() => downloadICS(hwTitle(item).replace(/\s+/g, '_') + '.ics', buildICS([item]))}>🔔 Recuérdamelo</button>}
-              <button className="link danger" onClick={() => onDelete(item)}>Eliminar</button>
+                <button className="link" onClick={() => downloadICS(hwTitle(item).replace(/\s+/g, '_') + '.ics', buildICS([item]))}>🔔 Remind me</button>}
+              <button className="link danger" onClick={() => onDelete(item)}>Delete</button>
             </div>
           </div>
         </div>
@@ -754,9 +754,9 @@
     const [err, setErr] = useState('');
 
     async function save() {
-      if (!name.trim()) { setErr('Ponle un nombre al semestre.'); return; }
-      if (!start || !end) { setErr('Indica una fecha de inicio y de fin.'); return; }
-      if (end < start) { setErr('La fecha de fin debe ser posterior a la de inicio.'); return; }
+      if (!name.trim()) { setErr('Please name the semester.'); return; }
+      if (!start || !end) { setErr('Please set a start and end date.'); return; }
+      if (end < start) { setErr('End date must be after the start date.'); return; }
       const id = initial ? initial.id : uid();
       await putSem({ id, name: name.trim(), start, end, createdAt: initial ? initial.createdAt : Date.now() });
       onSaved(id);
@@ -764,19 +764,19 @@
     return (
       <div className="backdrop" onClick={(e) => { if (e.target.classList.contains('backdrop')) onClose(); }}>
         <div className="sheet">
-          <h2>{initial ? 'Editar semestre' : 'Nuevo semestre'}</h2>
-          <label>Nombre</label>
-          <input type="text" value={name} onChange={e => { setName(e.target.value); setErr(''); }} placeholder="p. ej. Otoño 2026 · 1er Semestre" autoComplete="off" />
-          <label>Empieza</label>
+          <h2>{initial ? 'Edit semester' : 'New semester'}</h2>
+          <label>Name</label>
+          <input type="text" value={name} onChange={e => { setName(e.target.value); setErr(''); }} placeholder="e.g. Fall 2026 · 1st Semester" autoComplete="off" />
+          <label>Starts</label>
           <input type="date" value={start} onChange={e => { setStart(e.target.value); setErr(''); }} />
-          <label>Termina</label>
+          <label>Ends</label>
           <input type="date" value={end} onChange={e => { setEnd(e.target.value); setErr(''); }} />
           {err && <p className="form-err">{err}</p>}
           <div className="sheet-actions">
             {initial
-              ? <button className="btn ghost" onClick={() => onDelete(initial)}>Eliminar</button>
-              : <button className="btn ghost" onClick={onClose}>Cancelar</button>}
-            <button className="btn primary" onClick={save}>Guardar</button>
+              ? <button className="btn ghost" onClick={() => onDelete(initial)}>Delete</button>
+              : <button className="btn ghost" onClick={onClose}>Cancel</button>}
+            <button className="btn primary" onClick={save}>Save</button>
           </div>
         </div>
       </div>
@@ -818,32 +818,32 @@
     let weekInfo = null, range = null;
     if (sem) {
       const s = new Date(sem.start + 'T00:00:00'), e = new Date(sem.end + 'T00:00:00');
-      const fmt = (d) => d.toLocaleDateString(LOC, { day: 'numeric', month: 'short', year: 'numeric' });
+      const fmt = (d) => d.toLocaleDateString(LOC, { month: 'short', day: 'numeric', year: 'numeric' });
       range = fmt(s) + ' — ' + fmt(e);
       const totalWeeks = Math.max(1, Math.ceil((e - s) / (7*86400000)) + 1);
-      if (today >= s && today <= e) weekInfo = 'Semana ' + (Math.floor((today - s) / (7*86400000)) + 1) + ' / ' + totalWeeks;
+      if (today >= s && today <= e) weekInfo = 'Week ' + (Math.floor((today - s) / (7*86400000)) + 1) + ' / ' + totalWeeks;
     }
 
     const dayItems = (byDay[selDay] || []).slice().sort((a,b) => (a.done?1:0) - (b.done?1:0));
-    const fmtSel = new Date(selDay + 'T00:00:00').toLocaleDateString(LOC, { weekday: 'long', day: 'numeric', month: 'short' });
+    const fmtSel = new Date(selDay + 'T00:00:00').toLocaleDateString(LOC, { weekday: 'long', month: 'short', day: 'numeric' });
 
     return (
       <div className="cal-wrap">
         <div className="sembar">
-          <button className={'schip' + (!selId ? ' on' : '')} onClick={() => onSelSem(null)}>Todos</button>
+          <button className={'schip' + (!selId ? ' on' : '')} onClick={() => onSelSem(null)}>All</button>
           {semesters.map(s => <button key={s.id} className={'schip' + (selId === s.id ? ' on' : '')} onClick={() => onSelSem(s.id)}>{s.name}</button>)}
-          <button className="schip add" onClick={onNewSem}>＋ Semestre</button>
+          <button className="schip add" onClick={onNewSem}>＋ Semester</button>
         </div>
         {sem &&
           <div className="seminfo">
             <span>{range}</span>
-            <span>{weekInfo && <span className="wk">{weekInfo}</span>} <button className="link" onClick={() => onEditSem(sem)}>Editar</button></span>
+            <span>{weekInfo && <span className="wk">{weekInfo}</span>} <button className="link" onClick={() => onEditSem(sem)}>Edit</button></span>
           </div>}
 
         <div className="cal-head">
-          <button className="cal-nav" onClick={() => move(-1)} aria-label="Mes anterior">‹</button>
+          <button className="cal-nav" onClick={() => move(-1)} aria-label="Previous month">‹</button>
           <span className="mlabel">{monthLabel}</span>
-          <button className="cal-nav" onClick={() => move(1)} aria-label="Mes siguiente">›</button>
+          <button className="cal-nav" onClick={() => move(1)} aria-label="Next month">›</button>
         </div>
 
         <div className="cal-grid">
@@ -876,11 +876,11 @@
             ? dayItems.map(it =>
                 <div key={it.id} className={'drow' + (it.done ? ' done' : '')} onClick={() => onEditItem(it)}>
                   <span className="dot" style={{ background: it.color || '#f5f5f7' }}></span>
-                  <span className="dsub">{(it.title && it.title.trim()) || it.subject || '(sin título)'}</span>
+                  <span className="dsub">{(it.title && it.title.trim()) || it.subject || '(untitled)'}</span>
                   {it.subject && it.title && it.title.trim() && <span className="dmeta">{it.subject}</span>}
                 </div>)
-            : <div className="day-empty">Nada para este día.</div>}
-          <button className="link add-day" onClick={() => onAddForDay(selDay)}>＋ Añadir para este día</button>
+            : <div className="day-empty">Nothing due this day.</div>}
+          <button className="link add-day" onClick={() => onAddForDay(selDay)}>＋ Add for this day</button>
         </div>
       </div>
     );
@@ -901,9 +901,9 @@
     const pick = (c) => { touched.current = true; setColor(color === c ? '' : c); };
 
     async function save() {
-      if (!subject.trim()) { setErr('Escribe una materia.'); return; }
-      if (!start || !end) { setErr('Indica hora de inicio y de fin.'); return; }
-      if (end <= start) { setErr('La hora de fin debe ser posterior a la de inicio.'); return; }
+      if (!subject.trim()) { setErr('Please enter a subject.'); return; }
+      if (!start || !end) { setErr('Please set start and end times.'); return; }
+      if (end <= start) { setErr('End time must be after the start time.'); return; }
       const id = initial ? initial.id : uid();
       await putClass({ id, subject: subject.trim(), color, day, start, end, room: room.trim(), createdAt: initial ? initial.createdAt : Date.now() });
       onSaved();
@@ -912,34 +912,34 @@
     return (
       <div className="backdrop" onClick={(e) => { if (e.target.classList.contains('backdrop')) onClose(); }}>
         <div className="sheet">
-          <h2>{initial ? 'Editar clase' : 'Nueva clase'}</h2>
-          <label>Materia *</label>
-          <input type="text" value={subject} onChange={e => onSub(e.target.value)} placeholder="p. ej. Matemáticas" autoComplete="off" style={color ? { color } : undefined} />
+          <h2>{initial ? 'Edit class' : 'New class'}</h2>
+          <label>Subject *</label>
+          <input type="text" value={subject} onChange={e => onSub(e.target.value)} placeholder="e.g. Mathematics" autoComplete="off" style={color ? { color } : undefined} />
 
-          <label>Color</label>
+          <label>Colour</label>
           <div className="swatches">
-            <button type="button" className={'swatch none' + (color ? '' : ' on')} onClick={() => pick('')} title="Blanco (por defecto)"></button>
+            <button type="button" className={'swatch none' + (color ? '' : ' on')} onClick={() => pick('')} title="Default (white)"></button>
             {COLORS.map(c => <button type="button" key={c} className={'swatch' + (color === c ? ' on' : '')} style={{ background: c }} onClick={() => pick(c)}></button>)}
           </div>
 
-          <label>Día</label>
+          <label>Day</label>
           <div className="daypick">
             {DAYS_SHORT.map((d, i) => <button type="button" key={d} className={'dchip' + (day === i ? ' on' : '')} onClick={() => setDay(i)}>{d}</button>)}
           </div>
 
           <div className="time-row">
-            <div><label>Empieza</label><input type="time" value={start} onChange={e => { setStart(e.target.value); setErr(''); }} /></div>
-            <div><label>Termina</label><input type="time" value={end} onChange={e => { setEnd(e.target.value); setErr(''); }} /></div>
+            <div><label>Starts</label><input type="time" value={start} onChange={e => { setStart(e.target.value); setErr(''); }} /></div>
+            <div><label>Ends</label><input type="time" value={end} onChange={e => { setEnd(e.target.value); setErr(''); }} /></div>
           </div>
 
-          <label>Aula / nota</label>
-          <input type="text" value={room} onChange={e => setRoom(e.target.value)} placeholder="p. ej. Aula 204" autoComplete="off" />
+          <label>Room / note</label>
+          <input type="text" value={room} onChange={e => setRoom(e.target.value)} placeholder="e.g. Room 204" autoComplete="off" />
 
           {err && <p className="form-err">{err}</p>}
           <div className="sheet-actions">
-            {initial ? <button className="btn ghost" onClick={() => onDelete(initial)}>Eliminar</button>
-                     : <button className="btn ghost" onClick={onClose}>Cancelar</button>}
-            <button className="btn primary" onClick={save}>Guardar</button>
+            {initial ? <button className="btn ghost" onClick={() => onDelete(initial)}>Delete</button>
+                     : <button className="btn ghost" onClick={onClose}>Cancel</button>}
+            <button className="btn primary" onClick={save}>Save</button>
           </div>
         </div>
       </div>
@@ -973,7 +973,7 @@
       ctx.fillStyle = '#f5f5f7'; ctx.font = '700 38px Inter, -apple-system, sans-serif';
       ctx.fillText(clip(title, W - pad * 2), pad, pad + 34);
       ctx.fillStyle = '#7a7a80'; ctx.font = '500 16px "JetBrains Mono", ui-monospace, monospace';
-      ctx.fillText('HORARIO SEMANAL', pad, pad + 62);
+      ctx.fillText('WEEKLY SCHEDULE', pad, pad + 62);
 
       const gridTop = pad + titleH;
       days.forEach((d, i) => {
@@ -997,7 +997,7 @@
 
       canvas.toBlob((blob) => {
         const url = URL.createObjectURL(blob);
-        const a = document.createElement('a'); a.href = url; a.download = 'horario.png';
+        const a = document.createElement('a'); a.href = url; a.download = 'schedule.png';
         document.body.appendChild(a); a.click(); a.remove();
         setTimeout(() => URL.revokeObjectURL(url), 5000);
       }, 'image/png');
@@ -1005,10 +1005,10 @@
     (document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve()).then(draw);
   }
 
-  /* ---------- Schedule (horario) view ---------- */
+  /* ---------- Schedule view ---------- */
   function Schedule({ classes, semesters, selId, onEdit, onNew }) {
     const sem = semesters.find(s => s.id === selId) || null;
-    const title = sem ? sem.name : 'Horario semanal';
+    const title = sem ? sem.name : 'Weekly Schedule';
     const byDay = {};
     for (const c of classes) (byDay[c.day] = byDay[c.day] || []).push(c);
     for (const k in byDay) byDay[k].sort((a, b) => a.start.localeCompare(b.start));
@@ -1019,11 +1019,11 @@
       <div className="sched-wrap">
         <div className="sched-head">
           <span className="mlabel">{title}</span>
-          <button className="link" onClick={onNew}>＋ Añadir clase</button>
+          <button className="link" onClick={onNew}>＋ Add class</button>
         </div>
 
         {classes.length === 0 &&
-          <div className="day-empty">Aún no hay clases — toca “＋ Añadir clase” para armar tu horario.</div>}
+          <div className="day-empty">No classes yet — tap “＋ Add class” to build your schedule.</div>}
 
         {classes.length > 0 && viewDays.map(d =>
           <div className="sched-day" key={d}>
@@ -1041,9 +1041,9 @@
         {classes.length > 0 &&
           <React.Fragment>
             <div className="sched-actions">
-              <button className="btn primary" onClick={() => renderScheduleImage(title, imageDays, byDay)}>⬇ Descargar imagen del horario</button>
+              <button className="btn primary" onClick={() => renderScheduleImage(title, imageDays, byDay)}>⬇ Download schedule image</button>
             </div>
-            <p className="sched-note">Guarda la imagen y añádela con una app de widgets de fotos (p. ej. Widgetsmith) para ver tu horario en la pantalla de inicio.</p>
+            <p className="sched-note">Save the image, then add it with a photo‑widget app (e.g. Widgetsmith) to show your schedule on your home screen.</p>
           </React.Fragment>}
       </div>
     );
@@ -1082,13 +1082,13 @@
 
     const chooseSem = (id) => { setSelSem(id); if (id) localStorage.setItem('hw_sem', id); else localStorage.removeItem('hw_sem'); };
     const deleteSem = async (s) => {
-      if (!confirm('¿Eliminar este semestre? (Tus tareas no se borran.)')) return;
+      if (!confirm('Delete this semester? (Your homework is not deleted.)')) return;
       await delSemRec(s.id);
       if (selSem === s.id) chooseSem(null);
       setSemSheet(null); load();
     };
     const deleteClass = async (c) => {
-      if (!confirm('¿Eliminar esta clase?')) return;
+      if (!confirm('Delete this class?')) return;
       await delClassRec(c.id); setClassSheet(null); load();
     };
 
@@ -1109,8 +1109,8 @@
 
     function remindAll() {
       const ics = buildICS(items.filter(i => !i.done && i.dueDate));
-      if (!ics) { alert('No hay tareas próximas con fecha para añadir.'); return; }
-      downloadICS('tareas.ics', ics);
+      if (!ics) { alert('No upcoming homework with a due date to add.'); return; }
+      downloadICS('homework.ics', ics);
     }
 
     let view = items.filter(i => filter === 'all' ? true : filter === 'done' ? i.done : !i.done);
@@ -1129,7 +1129,7 @@
 
     const toggle = async (it) => { await putHW({ ...it, done: !it.done }); load(); };
     const del = async (it) => {
-      if (!confirm('¿Eliminar esta tarea y sus adjuntos?')) return;
+      if (!confirm('Delete this homework and its attachments?')) return;
       for (const a of await getAttsFor(it.id)) await delAtt(a.id);
       await delHWrec(it.id); load();
     };
@@ -1141,12 +1141,12 @@
       for (const a of atts) attOut.push({ id: a.id, homeworkId: a.homeworkId, name: a.name, type: a.type, text: a.text || '', data: await toB64(a.blob) });
       const blob = new Blob([JSON.stringify({ version: 2, exportedAt: new Date().toISOString(), homework: hw, attachments: attOut, semesters: sems, classes: cls })], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
-      const a = document.createElement('a'); a.href = url; a.download = 'tareas-copia-' + new Date().toISOString().slice(0,10) + '.json'; a.click();
+      const a = document.createElement('a'); a.href = url; a.download = 'homework-backup-' + new Date().toISOString().slice(0,10) + '.json'; a.click();
       URL.revokeObjectURL(url);
     }
     async function importData(file) {
       const data = JSON.parse(await file.text());
-      if (!data.homework) { alert('Ese archivo no parece una copia de seguridad de tareas.'); return; }
+      if (!data.homework) { alert('That does not look like a homework backup.'); return; }
       for (const h of data.homework) await putHW(h);
       for (const a of (data.attachments||[])) {
         const blob = await (await fetch(a.data)).blob();
@@ -1154,7 +1154,7 @@
       }
       for (const s of (data.semesters||[])) await putSem(s);
       for (const c of (data.classes||[])) await putClass(c);
-      alert('¡Restauración completada!'); load();
+      alert('Restore complete!'); load();
     }
 
     return (
@@ -1165,9 +1165,9 @@
             <div className="wordmark">HOME<br/>W<span className="ring"></span>RK</div>
           </div>
           <div className="viewtabs">
-            <button className={mode === 'list' ? 'active' : ''} onClick={() => setMode('list')}>Lista</button>
-            <button className={mode === 'cal' ? 'active' : ''} onClick={() => setMode('cal')}>Calendario</button>
-            <button className={mode === 'sched' ? 'active' : ''} onClick={() => setMode('sched')}>Horario</button>
+            <button className={mode === 'list' ? 'active' : ''} onClick={() => setMode('list')}>List</button>
+            <button className={mode === 'cal' ? 'active' : ''} onClick={() => setMode('cal')}>Calendar</button>
+            <button className={mode === 'sched' ? 'active' : ''} onClick={() => setMode('sched')}>Schedule</button>
           </div>
         </header>
 
@@ -1175,15 +1175,15 @@
           {mode === 'list' ? (
             <React.Fragment>
               <section className="hero">
-                <p className="eyebrow">Gestor de tareas · Ve un paso adelante</p>
-                <h1 className="hero-title">Todo lo pendiente,<br/><span className="dim">en un solo lugar.</span></h1>
-                <p className="hero-sub mono">{items.length === 0 ? '// aún no hay tareas — añade la primera abajo' : openCount + ' pendientes · ' + (items.length - openCount) + ' hechas'}</p>
+                <p className="eyebrow">Homework Tracker · Stay Ahead</p>
+                <h1 className="hero-title">Everything due,<br/><span className="dim">in one place.</span></h1>
+                <p className="hero-sub mono">{items.length === 0 ? '// no entries yet — add your first below' : openCount + ' pending · ' + (items.length - openCount) + ' done'}</p>
               </section>
 
               <div className="toolbar">
-                <input className="search" placeholder="Buscar…" value={search} onChange={e => setSearch(e.target.value)} />
+                <input className="search" placeholder="Search…" value={search} onChange={e => setSearch(e.target.value)} />
                 <div className="filters">
-                  {[['todo','Pendientes'],['done','Hechas'],['all','Todas']].map(([f,lbl]) =>
+                  {[['todo','To do'],['done','Done'],['all','All']].map(([f,lbl]) =>
                     <button key={f} className={filter === f ? 'active' : ''} onClick={() => setFilter(f)}>{lbl}</button>)}
                 </div>
               </div>
@@ -1191,14 +1191,14 @@
               {view.length === 0
                 ? <div className="empty">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.3"><rect x="4" y="4" width="16" height="16"/><path d="M8 9h8M8 13h6"/></svg>
-                    <p>{filter === 'todo' ? '¡Todo al día!' : 'Nada por aquí todavía'}</p>
+                    <p>{filter === 'todo' ? 'All caught up' : 'Nothing here yet'}</p>
                   </div>
                 : view.map(it => <Card key={it.id} item={it} atts={attsByHw[it.id] || []} onToggle={toggle} onEdit={(i)=>setSheet({editing:i})} onDelete={del} onChanged={load} />)}
 
               <div className="footer-tools">
-                <button className="link" onClick={remindAll}>🔔 Añadir al calendario</button>
-                <button className="link" onClick={exportData}>Copia de seguridad</button>
-                <button className="link" onClick={() => importRef.current.click()}>Restaurar</button>
+                <button className="link" onClick={remindAll}>🔔 Add to Calendar</button>
+                <button className="link" onClick={exportData}>Backup</button>
+                <button className="link" onClick={() => importRef.current.click()}>Restore</button>
                 <input ref={importRef} type="file" accept="application/json" hidden onChange={e => { if (e.target.files[0]) importData(e.target.files[0]); e.target.value = ''; }} />
               </div>
             </React.Fragment>
@@ -1212,7 +1212,7 @@
           )}
         </main>
 
-        <button className="add" onClick={() => setSheet({})} aria-label="Añadir tarea">＋</button>
+        <button className="add" onClick={() => setSheet({})} aria-label="Add homework">＋</button>
 
         {sheet && <Sheet initial={sheet.editing || null} prefillDate={sheet.date || ''} subjectColors={subjectColors} classSubjects={classSubjects} onClose={() => setSheet(null)} onSaved={() => { setSheet(null); load(); }} />}
         {semSheet && <SemesterSheet initial={semSheet.editing || null} onClose={() => setSemSheet(null)} onDelete={deleteSem} onSaved={(id) => { setSemSheet(null); chooseSem(id); load(); }} />}
