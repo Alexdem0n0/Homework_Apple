@@ -85,7 +85,7 @@
       background: #000;
     }
     .brand { display: flex; align-items: center; gap: 12px; }
-    .ghost { width: 30px; height: 30px; flex: 0 0 auto; }
+    .ghost { width: 30px; height: 30px; flex: 0 0 auto; animation: floaty 4.5s ease-in-out infinite; }
     .wordmark { line-height: 0.92; font-weight: 700; letter-spacing: 3px; font-size: 15px; }
     .wordmark .ring { display: inline-block; width: 0.6em; height: 0.6em; border: 2px solid currentColor;
       border-radius: 50%; vertical-align: 0.04em; margin: 0 0.04em; box-sizing: border-box; }
@@ -172,6 +172,20 @@
       color: rgba(255,255,255,0.72); white-space: pre-wrap; word-break: break-word; max-height: 240px; overflow: auto; }
     .transcript .tlabel { display: block; font-size: 9.5px; letter-spacing: 2px; text-transform: uppercase; color: var(--faint); margin-bottom: 7px; }
     .photo-tools { display: flex; flex-wrap: wrap; gap: 14px 18px; margin-top: 14px; }
+    .tap-hint { font-size: 11px; color: var(--faint); letter-spacing: .3px; margin: 10px 0 0; }
+
+    /* delete-with-grade dialog */
+    .dialog { width: 100%; max-width: 460px; margin: 0 18px; background: #0c0c0f; border: 1px solid var(--line-strong);
+      padding: 24px 22px calc(24px + env(safe-area-inset-bottom)); animation: slideUp .28s cubic-bezier(.2,.8,.2,1); }
+    .dialog h2 { margin: 0 0 10px; font-size: 17px; font-weight: 500; letter-spacing: -0.2px; }
+    .dialog-text { font-size: 13.5px; color: var(--muted); line-height: 1.5; margin: 0 0 22px; }
+    .dialog .btn + .btn { margin-top: 10px; }
+
+    /* logo: gentle float + failing-bulb letter flicker */
+    @keyframes floaty { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+    .wordmark .fl { display: inline-block; animation: bulb 5s linear infinite; }
+    @keyframes bulb { 0%, 88%, 100% { opacity: 1; } 89% { opacity: .3; } 90.5% { opacity: 1; } 92% { opacity: .55; } 93.5% { opacity: 1; } }
+    @media (prefers-reduced-motion: reduce) { .ghost, .wordmark .fl { animation: none !important; } }
 
     .empty { text-align: center; color: var(--faint); padding: 70px 20px; animation: cardIn .4s both; }
     .empty svg { width: 42px; height: 42px; opacity: .35; margin-bottom: 14px; }
@@ -194,7 +208,7 @@
     .schip { white-space: nowrap; border: 1px solid var(--line); background: none; color: var(--muted);
       padding: 8px 13px; font-size: 11px; letter-spacing: 1px; text-transform: uppercase; cursor: pointer; }
     .schip.on { border-color: var(--line-strong); color: var(--text); }
-    .schip.add { color: var(--faint); border-style: dashed; }
+    .schip.newitem { color: var(--faint); border-style: dashed; }
     .seminfo { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; align-items: center;
       padding: 2px 2px 12px; border-bottom: 1px solid var(--line); font-size: 12px; color: var(--muted); letter-spacing: .5px; }
     .seminfo .wk { color: var(--soon); margin-right: 12px; }
@@ -364,9 +378,12 @@
     .addmenu-backdrop { position: fixed; inset: 0; z-index: 25; background: rgba(0,0,0,0.55); animation: fade .18s ease; }
     .addmenu { position: fixed; right: calc(18px + env(safe-area-inset-right)); bottom: calc(92px + env(safe-area-inset-bottom)); z-index: 26;
       display: flex; flex-direction: column; gap: 10px; align-items: flex-end; }
-    .addmenu button { background: #fff; color: #000; border: none; padding: 15px 20px; font-family: inherit; font-size: 13px; font-weight: 600;
-      letter-spacing: 1px; cursor: pointer; box-shadow: 0 8px 30px rgba(0,0,0,0.6); display: flex; align-items: center; gap: 10px; min-width: 168px; }
-    .addmenu button:active { transform: scale(.97); }
+    .addmenu button { background: #0c0c0f; color: #fff; border: 1px solid rgba(255,255,255,0.5); padding: 16px 18px; font-family: inherit; font-size: 14px; font-weight: 600;
+      letter-spacing: .5px; cursor: pointer; box-shadow: 0 8px 30px rgba(0,0,0,0.6); display: flex; align-items: center; gap: 12px; width: 220px; justify-content: flex-start; }
+    .addmenu button:active { transform: scale(.97); background: #17171b; }
+
+    /* full-screen photo viewer with transcript underneath */
+    .viewer-img { width: 100%; max-height: 62vh; object-fit: contain; background: #000; border: 1px solid var(--line); display: block; margin-bottom: 6px; }
 
     /* round save / cancel buttons inside a sheet (match the corner add button) */
     .sheet-fabs {
@@ -550,6 +567,12 @@
     setTimeout(() => URL.revokeObjectURL(url), 4000);
   }
 
+  /* ---------- Flickering wordmark letters (failing-bulb effect) ---------- */
+  function Flick({ text }) {
+    return text.split('').map((ch, i) =>
+      <span key={i} className="fl" style={{ animationDelay: ((i * 0.83 + (ch.charCodeAt(0) % 7) * 0.31) % 5).toFixed(2) + 's' }}>{ch}</span>);
+  }
+
   /* ---------- Ghost logo ---------- */
   function Ghost() {
     return (
@@ -634,8 +657,8 @@
           results[a.id] = await transcribeBlob(a.blob, (pct) => setOcr({ pct, i: i + 1, n: todo.length }));
         }
         setStaged(s => s.map(x => results[x.id] !== undefined ? { ...x, text: results[x.id] } : x));
-        const combined = todo.map(a => results[a.id]).filter(Boolean).join('\n\n');
-        if (combined) setNotes(n => n ? (n.trimEnd() + '\n\n' + combined) : combined);
+        // Note: transcripts stay attached to each photo (view them by tapping the photo).
+        // They are NOT dumped into your notes, so Notes stays only what you type.
       } catch (e) {
         alert(e.message || 'Transcription failed.');
       } finally {
@@ -650,7 +673,7 @@
       const cleanSubs = subtasks.filter(s => s.text.trim()).map(s => ({ id: s.id, text: s.text.trim(), done: !!s.done }));
       const hw = { id, kind, title: ttl, subject: subj, classNo: initial ? (initial.classNo || '') : '',
         className: className.trim(), dueDate, notes: notes.trim(), color, subtasks: cleanSubs,
-        grade: initial ? (initial.grade || '') : '',
+        grade: initial ? (initial.grade || '') : '', archived: initial ? (initial.archived || false) : false,
         done: initial ? initial.done : false, createdAt: initial ? initial.createdAt : Date.now() };
       await putHW(hw);
       const prev = initial ? await getAttsFor(id) : [];
@@ -757,14 +780,72 @@
     );
   }
 
+  /* ---------- Photo viewer: image on top, transcript below ---------- */
+  function copyToClipboard(str) {
+    if (navigator.clipboard && navigator.clipboard.writeText) return navigator.clipboard.writeText(str);
+    return new Promise((res, rej) => {
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = str; ta.style.position = 'fixed'; ta.style.opacity = '0';
+        document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); res();
+      } catch (e) { rej(e); }
+    });
+  }
+  function PhotoViewer({ att, onClose, onChanged }) {
+    const [ocr, setOcr] = useState(null);
+    const [copied, setCopied] = useState('');
+    const text = att.text || '';
+    const aiPrompt = 'This is text transcribed by OCR from a photo of my homework, so it may have mistakes. '
+      + 'Please clean it up; if it contains math problems, rewrite each one clearly in standard notation (use LaTeX where it helps) '
+      + 'so it is unambiguous, then help me solve it step by step.\n\n"""\n' + text + '\n"""';
+    async function transcribe() {
+      setOcr({ pct: 0 });
+      try {
+        const t = await transcribeBlob(att.blob, (pct) => setOcr({ pct }));
+        await putAtt({ id: att.id, homeworkId: att.homeworkId, name: att.name, type: att.type, blob: att.blob, text: t });
+        await onChanged();
+      } catch (e) { alert(e.message || 'Transcription failed.'); }
+      finally { setOcr(null); }
+    }
+    async function copy(str, tag) {
+      try { await copyToClipboard(str); setCopied(tag); setTimeout(() => setCopied(''), 1600); }
+      catch (e) { alert('Could not copy automatically — long-press the text to copy.'); }
+    }
+    return (
+      <div className="backdrop" onClick={(e) => { if (e.target.classList.contains('backdrop')) onClose(); }}>
+        <div className="sheet">
+          <div className="sheet-top">
+            <h2>Photo</h2>
+            <button className="sheet-x" onClick={onClose} aria-label="Close">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+            </button>
+          </div>
+          <img className="viewer-img" src={att.url} alt={att.name} />
+          <a className="link" href={att.url} download={att.name} style={{ display: 'inline-block', marginBottom: '6px' }}>Download image</a>
+          {text
+            ? <React.Fragment>
+                <div className="transcript"><span className="tlabel">Transcript</span>{text}</div>
+                <div className="photo-tools">
+                  <button className="link" onClick={() => copy(text, 't')}>{copied === 't' ? '✓ Copied' : 'Copy text'}</button>
+                  <button className="link" onClick={() => copy(aiPrompt, 'ai')}>{copied === 'ai' ? '✓ Copied' : 'Copy for AI'}</button>
+                  <button className={'link' + (ocr ? ' busy' : '')} onClick={ocr ? null : transcribe}>{ocr ? ('Re-reading · ' + ocr.pct + '%') : 'Re-transcribe'}</button>
+                </div>
+              </React.Fragment>
+            : <div className={'file-btn wide' + (ocr ? ' busy' : '')} onClick={ocr ? null : transcribe}>
+                {ocr ? ('Transcribing · ' + ocr.pct + '%') : '⛯ Transcribe this photo'}
+              </div>}
+          <div style={{ height: '20px' }}></div>
+        </div>
+      </div>
+    );
+  }
+
   /* ---------- Card ---------- */
   function Card({ item, atts, onToggle, onEdit, onDelete, onChanged }) {
+    const [viewer, setViewer] = useState(null);
     const di = dueInfo(item.dueDate, item.done);
-    const [ocr, setOcr] = useState(null);
-    const [copied, setCopied] = useState(false);
     const images = atts.filter(isImage);
-    const transcripts = atts.filter(a => a.text);
-    const combinedText = transcripts.map(a => a.text.trim()).filter(Boolean).join('\n\n');
+    const hasTranscript = images.some(a => a.text);
     const displayTitle = (item.title && item.title.trim()) || item.subject || '(untitled)';
     const showSubjectLine = item.title && item.title.trim() && item.subject;
     const isExam = item.kind === 'exam';
@@ -777,47 +858,8 @@
       await onChanged();
     }
 
-    async function transcribeCard() {
-      const todo = images.filter(a => !a.text);
-      if (!todo.length) return;
-      setOcr({ pct: 0, i: 0, n: todo.length });
-      try {
-        for (let i = 0; i < todo.length; i++) {
-          const a = todo[i];
-          const text = await transcribeBlob(a.blob, (pct) => setOcr({ pct, i: i + 1, n: todo.length }));
-          await putAtt({ id: a.id, homeworkId: a.homeworkId, name: a.name, type: a.type, blob: a.blob, text });
-        }
-        await onChanged();
-      } catch (e) {
-        alert(e.message || 'Transcription failed.');
-      } finally {
-        setOcr(null);
-      }
-    }
-
-    async function copyText() {
-      if (!combinedText) return;
-      try {
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-          await navigator.clipboard.writeText(combinedText);
-        } else {
-          const ta = document.createElement('textarea');
-          ta.value = combinedText; ta.style.position = 'fixed'; ta.style.opacity = '0';
-          document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove();
-        }
-        setCopied(true); setTimeout(() => setCopied(false), 1600);
-      } catch (e) { alert('Could not copy automatically — long-press the text to copy.'); }
-    }
-
-    function downloadImages() {
-      images.forEach((a, i) => setTimeout(() => {
-        const link = document.createElement('a');
-        link.href = a.url; link.download = a.name;
-        document.body.appendChild(link); link.click(); link.remove();
-      }, i * 500));
-    }
-
     return (
+      <React.Fragment>
       <div className="card">
         <div className={'hw' + (item.done ? ' done' : '')}>
           <button className="check" onClick={() => onToggle(item)} aria-label="Toggle done">
@@ -846,23 +888,11 @@
             {atts.length > 0 &&
               <div className="attachments">
                 {atts.map(a => isImage(a)
-                  ? <a key={a.id} href={a.url} target="_blank" rel="noopener"><img className="thumb" src={a.url} alt={a.name} /></a>
+                  ? <img key={a.id} className="thumb" src={a.url} alt={a.name} onClick={() => setViewer(a)} style={{ cursor: 'pointer' }} />
                   : <a key={a.id} className="att" href={a.url} download={a.name}>📎 <span className="name">{a.name}</span></a>)}
               </div>}
-            {combinedText &&
-              <div className="transcript">
-                <span className="tlabel">Transcribed text</span>{combinedText}
-              </div>}
             {images.length > 0 &&
-              <div className="photo-tools">
-                {images.some(a => !a.text) &&
-                  <button className={'link' + (ocr ? ' busy' : '')} onClick={ocr ? null : transcribeCard}>
-                    {ocr ? ('Transcribing ' + ocr.i + '/' + ocr.n + ' · ' + ocr.pct + '%') : '⛯ Transcribe photos'}
-                  </button>}
-                {combinedText &&
-                  <button className="link" onClick={copyText}>{copied ? '✓ Copied' : 'Copy text'}</button>}
-                <button className="link" onClick={downloadImages}>Download {images.length > 1 ? 'images' : 'image'}</button>
-              </div>}
+              <p className="tap-hint">{hasTranscript ? 'Tap a photo to view it and read its transcript' : 'Tap a photo to view it and transcribe the text'}</p>}
             <div className="row-actions">
               <button className="link" onClick={() => onEdit(item)}>Edit</button>
               {item.dueDate && !item.done &&
@@ -872,6 +902,8 @@
           </div>
         </div>
       </div>
+      {viewer && <PhotoViewer att={viewer} onClose={() => setViewer(null)} onChanged={onChanged} />}
+      </React.Fragment>
     );
   }
 
@@ -971,7 +1003,7 @@
         <div className="sembar">
           <button className={'schip' + (!selId ? ' on' : '')} onClick={() => onSelSem(null)}>All</button>
           {semesters.map(s => <button key={s.id} className={'schip' + (selId === s.id ? ' on' : '')} onClick={() => onSelSem(s.id)}>{s.name}</button>)}
-          <button className="schip add" onClick={onNewSem}>＋ Semester</button>
+          <button className="schip newitem" onClick={onNewSem}>＋ Semester</button>
         </div>
         {sem &&
           <div className="seminfo">
@@ -1320,6 +1352,7 @@
     const [semSheet, setSemSheet] = useState(null);
     const [classes, setClasses] = useState([]);
     const [classSheet, setClassSheet] = useState(null);
+    const [delTarget, setDelTarget] = useState(null);
     const urlsRef = useRef([]);
     const importRef = useRef(null);
 
@@ -1350,8 +1383,9 @@
       await delClassRec(c.id); setClassSheet(null); load();
     };
 
-    const homeworkItems = items.filter(i => (i.kind || 'homework') !== 'exam');
-    const examItems = items.filter(i => i.kind === 'exam');
+    const activeItems = items.filter(i => !i.archived);
+    const homeworkItems = activeItems.filter(i => (i.kind || 'homework') !== 'exam');
+    const examItems = activeItems.filter(i => i.kind === 'exam');
     const openCount = homeworkItems.filter(i => !i.done).length;
 
     // remember the colour last used for each subject, so new entries match
@@ -1368,7 +1402,7 @@
     }
 
     function remindAll() {
-      const ics = buildICS(items.filter(i => !i.done && i.dueDate));
+      const ics = buildICS(activeItems.filter(i => !i.done && i.dueDate));
       if (!ics) { alert('No upcoming homework with a due date to add.'); return; }
       downloadICS('homework.ics', ics);
     }
@@ -1391,10 +1425,17 @@
 
     const toggle = async (it) => { await putHW({ ...it, done: !it.done }); load(); };
     const setGrade = async (it, grade) => { await putHW({ ...it, grade }); load(); };
-    const del = async (it) => {
-      if (!confirm('Delete this item and its attachments?')) return;
-      for (const a of await getAttsFor(it.id)) await delAtt(a.id);
-      await delHWrec(it.id); load();
+    const removeAtts = async (id) => { for (const a of await getAttsFor(id)) await delAtt(a.id); };
+    const reallyDelete = async (it, keepGrade) => {
+      await removeAtts(it.id);
+      if (keepGrade) await putHW({ ...it, archived: true });
+      else await delHWrec(it.id);
+      setDelTarget(null); load();
+    };
+    const del = (it) => {
+      const hasGrade = it.grade !== '' && it.grade != null;
+      if (hasGrade) { setDelTarget(it); return; }
+      if (confirm('Delete this item and its attachments?')) reallyDelete(it, false);
     };
 
     async function exportData() {
@@ -1425,7 +1466,7 @@
         <header>
           <div className="brand">
             <Ghost />
-            <div className="wordmark">HOME<br/>W<span className="ring"></span>RK</div>
+            <div className="wordmark"><Flick text="HOME" /><br/><Flick text="WORK" /></div>
           </div>
           <div className="viewtabs">
             <button className={mode === 'list' ? 'active' : ''} onClick={() => setMode('list')}>Homework</button>
@@ -1474,7 +1515,7 @@
           ) : mode === 'grades' ? (
             <Grades items={items} classes={classes} onSetGrade={setGrade} onEditItem={(i)=>setSheet({editing:i})} />
           ) : mode === 'cal' ? (
-            <Calendar items={items} semesters={semesters} selId={selSem}
+            <Calendar items={activeItems} semesters={semesters} selId={selSem}
               onSelSem={chooseSem} onNewSem={() => setSemSheet({})} onEditSem={(s) => setSemSheet({ editing: s })}
               onEditItem={(i) => setSheet({ editing: i })} onAddForDay={(iso) => setSheet({ date: iso })} />
           ) : (
@@ -1483,12 +1524,24 @@
           )}
         </main>
 
-        <button className="add" onClick={() => setAddMenu(true)} aria-label="Add">＋</button>
+        {mode !== 'cal' && mode !== 'sched' &&
+          <button className="add" onClick={() => setAddMenu(true)} aria-label="Add">＋</button>}
         {addMenu &&
           <div className="addmenu-backdrop" onClick={() => setAddMenu(false)}>
             <div className="addmenu" onClick={e => e.stopPropagation()}>
               <button onClick={() => { setAddMenu(false); setSheet({ newKind: 'exam' }); }}>📝 New exam</button>
               <button onClick={() => { setAddMenu(false); setSheet({ newKind: 'homework' }); }}>📓 New homework</button>
+            </div>
+          </div>}
+
+        {delTarget &&
+          <div className="backdrop" style={{ alignItems: 'center' }} onClick={(e) => { if (e.target.classList.contains('backdrop')) setDelTarget(null); }}>
+            <div className="dialog">
+              <h2>Delete “{(delTarget.title && delTarget.title.trim()) || delTarget.subject || 'this item'}”?</h2>
+              <p className="dialog-text">It has a grade of {delTarget.grade} / {GRADE_MAX}. Do you want to keep that grade counting toward your average?</p>
+              <button className="btn ghost wide-one" onClick={() => reallyDelete(delTarget, true)}>Delete, keep the grade</button>
+              <button className="btn danger wide-one" onClick={() => reallyDelete(delTarget, false)}>Delete everything</button>
+              <button className="btn ghost wide-one" onClick={() => setDelTarget(null)}>Cancel</button>
             </div>
           </div>}
 
