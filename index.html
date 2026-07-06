@@ -358,6 +358,11 @@
     /* kind + grade tags */
     .kind-tag { font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; padding: 3px 8px; border: 1px solid var(--line-strong); color: var(--text); }
     .kind-tag.exam { color: #ffcf70; border-color: rgba(255,207,112,0.5); }
+    /* exam urgency badge (calendar day list) */
+    .exam-badge { flex: 0 0 auto; font-size: 10px; letter-spacing: 1.2px; text-transform: uppercase; padding: 4px 9px;
+      border: 1px solid var(--line-strong); color: var(--dim); white-space: nowrap; }
+    .exam-badge.orange { color: #e9a23b; border-color: rgba(233,162,59,0.6); }
+    .exam-badge.red { color: #ffb4b4; border-color: rgba(224,102,102,0.75); background: rgba(224,102,102,0.22); font-weight: 600; }
     .grade-tag { font-size: 10.5px; letter-spacing: 1px; padding: 3px 8px; border: 1px solid rgba(95,208,138,0.5); color: #5fd08a; }
 
     /* grades view */
@@ -561,6 +566,17 @@
     if (days === 1) return { cls: 'soon', label: 'Tomorrow' };
     if (days <= 3) return { cls: 'soon', label: 'In ' + days + ' days' };
     return { cls: '', label: fmtDate(iso) };
+  }
+  // Exam urgency for the calendar: red at ≤1 day, orange at ≤3 days, otherwise days-left.
+  function examUrgency(iso) {
+    if (!iso) return { cls: '', label: 'Exam' };
+    const today = new Date(); today.setHours(0,0,0,0);
+    const days = Math.round((new Date(iso + 'T00:00:00') - today) / 86400000);
+    if (days < 0) return { cls: 'red', label: 'Past' };
+    if (days === 0) return { cls: 'red', label: 'Today!' };
+    if (days === 1) return { cls: 'red', label: 'Tomorrow!' };
+    if (days <= 3) return { cls: 'orange', label: 'In ' + days + ' days' };
+    return { cls: '', label: days + ' days left' };
   }
 
   /* ---------- Subject colours & days ---------- */
@@ -1095,13 +1111,19 @@
         <div className="day-detail">
           <h3>{fmtSel}</h3>
           {dayItems.length
-            ? dayItems.map(it =>
+            ? dayItems.map(it => {
+                const u = it.kind === 'exam' ? examUrgency(it.dueDate) : null;
+                const dotColor = u && !it.done ? (u.cls === 'red' ? '#e06666' : u.cls === 'orange' ? '#e9a23b' : (it.color || '#f5f5f7')) : (it.color || '#f5f5f7');
+                return (
                 <div key={it.id} className={'drow' + (it.done ? ' done' : '')} onClick={() => onEditItem(it)}>
-                  <span className={'dot' + (it.kind === 'exam' ? ' ex' : '')} style={it.kind === 'exam' ? { borderColor: it.color || '#f5f5f7' } : { background: it.color || '#f5f5f7' }}></span>
+                  <span className={'dot' + (it.kind === 'exam' ? ' ex' : '')} style={it.kind === 'exam' ? { borderColor: dotColor } : { background: dotColor }}></span>
                   <span className="dsub">{(it.title && it.title.trim()) || it.subject || '(untitled)'}</span>
-                  {it.kind === 'exam' && <span className="kind-tag exam">Exam</span>}
+                  {it.kind === 'exam' && (it.done
+                    ? <span className="exam-badge">Exam</span>
+                    : <span className={'exam-badge ' + u.cls}>{u.label}</span>)}
                   {it.subject && it.title && it.title.trim() && <span className="dmeta">{it.subject}</span>}
-                </div>)
+                </div>);
+              })
             : <div className="day-empty">Nothing due this day.</div>}
           <button className="link add-day" onClick={() => onAddForDay(selDay)}>＋ Add for this day</button>
         </div>
