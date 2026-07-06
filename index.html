@@ -22,7 +22,8 @@
   <style>
     :root {
       --bg: #000;
-      --panel: rgba(255,255,255,0.018);
+      --panel: #0b0b0d;
+      --panel-lit: linear-gradient(180deg, #141419 0%, #0b0b0d 62%);
       --line: rgba(255,255,255,0.09);
       --line-strong: rgba(255,255,255,0.24);
       --text: #f5f5f7;
@@ -118,7 +119,8 @@
 
     /* ---------- Cards (sharp corners, thin borders) ---------- */
     .card {
-      border: 1px solid var(--line); background: var(--panel);
+      border: 1px solid var(--line); background: var(--panel-lit);
+      box-shadow: 0 1px 0 rgba(255,255,255,0.03) inset, 0 10px 30px rgba(0,0,0,0.45);
       padding: 16px; margin-bottom: 12px; animation: cardIn .3s cubic-bezier(.2,.7,.3,1) both;
     }
     @keyframes cardIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
@@ -201,7 +203,7 @@
     .cal-nav:active { background: rgba(255,255,255,0.08); }
     .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
     .cal-dow { text-align: center; font-size: 9px; letter-spacing: 1px; text-transform: uppercase; color: var(--faint); padding: 2px 0 6px; }
-    .cal-cell { min-height: 46px; border: 1px solid var(--line); background: rgba(255,255,255,0.012); padding: 5px;
+    .cal-cell { min-height: 46px; border: 1px solid var(--line); background: var(--panel); padding: 5px;
       display: flex; flex-direction: column; gap: 2px; cursor: pointer; }
     .cal-cell.out { opacity: .32; }
     .cal-cell.dim { opacity: .14; }
@@ -215,7 +217,7 @@
 
     .day-detail { margin-top: 22px; }
     .day-detail h3 { font-size: 12px; letter-spacing: 2px; text-transform: uppercase; color: var(--faint); margin: 0 0 12px; }
-    .drow { display: flex; align-items: center; gap: 12px; border: 1px solid var(--line); background: var(--panel); padding: 12px 14px; margin-bottom: 8px; cursor: pointer; }
+    .drow { display: flex; align-items: center; gap: 12px; border: 1px solid var(--line); background: var(--panel-lit); padding: 12px 14px; margin-bottom: 8px; cursor: pointer; }
     .drow .dot { width: 9px; height: 9px; border-radius: 50%; flex: 0 0 auto; }
     .drow .dsub { font-size: 15px; }
     .drow.done .dsub { color: var(--muted); text-decoration: line-through; }
@@ -232,7 +234,7 @@
     .sched-day { margin-top: 20px; }
     .sched-day h3 { font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: var(--faint); margin: 0 0 10px; }
     .cls { display: flex; align-items: center; gap: 14px; border: 1px solid var(--line); border-left: 3px solid #f5f5f7;
-      background: var(--panel); padding: 12px 14px; margin-bottom: 8px; cursor: pointer; }
+      background: var(--panel-lit); padding: 12px 14px; margin-bottom: 8px; cursor: pointer; }
     .cls-time { font-size: 13px; color: var(--muted); flex: 0 0 auto; }
     .cls-sub { font-size: 15px; font-weight: 500; }
     .cls-room { margin-left: auto; font-size: 10.5px; letter-spacing: 1px; text-transform: uppercase; color: var(--faint); }
@@ -307,7 +309,29 @@
     .btn { flex: 1; padding: 16px; font-family: inherit; font-size: 12px; letter-spacing: 2px; text-transform: uppercase; cursor: pointer; transition: transform .15s, opacity .2s; }
     .btn:active { transform: scale(.97); }
     .btn.primary { background: #fff; color: #000; border: none; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px; }
-    .btn.ghost { background: transparent; color: var(--muted); border: 1px solid var(--line-strong); }
+    .btn.ghost { background: #17171b; color: #e8e8ec; border: 1px solid var(--line-strong); font-weight: 500; }
+
+    /* round save / cancel buttons inside a sheet (match the corner add button) */
+    .sheet-fabs {
+      position: fixed; right: calc(18px + env(safe-area-inset-right));
+      bottom: calc(22px + env(safe-area-inset-bottom)); z-index: 40; display: flex; gap: 12px;
+    }
+    .fab { width: 58px; height: 58px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+      cursor: pointer; border: none; transition: transform .15s; }
+    .fab:active { transform: scale(.9); }
+    .fab.save { background: #fff; color: #000; box-shadow: 0 8px 30px rgba(0,0,0,0.7); }
+    .fab svg { width: 24px; height: 24px; }
+
+    /* sticky sheet header with a close (X) in the corner */
+    .sheet-top { position: sticky; top: 0; z-index: 5; background: #050506;
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      margin: 0 0 20px; padding: 2px 0 10px; }
+    .sheet-top h2 { margin: 0; }
+    .sheet-x { flex: 0 0 auto; width: 38px; height: 38px; border-radius: 50%;
+      background: #17171b; border: 1px solid var(--line-strong); color: #cfcfd4;
+      display: flex; align-items: center; justify-content: center; cursor: pointer; transition: transform .15s; }
+    .sheet-x:active { transform: scale(.9); }
+    .sheet-x svg { width: 18px; height: 18px; }
   </style>
 </head>
 <body>
@@ -570,7 +594,12 @@
     return (
       <div className="backdrop" onClick={(e) => { if (e.target.classList.contains('backdrop')) onClose(); }}>
         <div className="sheet">
-          <h2>{initial ? 'Edit homework' : 'New homework'}</h2>
+          <div className="sheet-top">
+            <h2>{initial ? 'Edit homework' : 'New homework'}</h2>
+            <button className="sheet-x" onClick={onClose} aria-label="Close">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+            </button>
+          </div>
 
           <label>Homework title</label>
           <input ref={titleRef} type="text" className={err ? 'err' : ''} value={title}
@@ -636,13 +665,13 @@
               {ocr ? ('Transcribing ' + ocr.i + '/' + ocr.n + ' · ' + ocr.pct + '%') : '⛯ Transcribe photo text → notes'}
             </div>}
 
-          <div className="sheet-actions">
-            <button className="btn ghost" onClick={onClose}>Cancel</button>
-            <button className="btn primary" onClick={save}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7Z"/></svg>
-              Save
-            </button>
-          </div>
+          <div style={{ height: '78px' }}></div>
+        </div>
+
+        <div className="sheet-fabs">
+          <button className="fab save" onClick={save} aria-label={initial ? 'Save changes' : 'Save homework'}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12l5 5L20 6"/></svg>
+          </button>
         </div>
       </div>
     );
