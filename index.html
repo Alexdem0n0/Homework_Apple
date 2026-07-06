@@ -308,10 +308,14 @@
   <div id="root"><div id="boot" class="boot-msg mono">Loading<span class="dots"></span></div></div>
 
   <script>
-    // Surface CDN/script failures instead of leaving a blank screen.
-    window.addEventListener('error', function () {
+    // Surface real script/runtime failures instead of leaving a blank screen.
+    window.addEventListener('error', function (e) {
       var boot = document.getElementById('boot');
-      if (boot) boot.innerHTML = "Couldn't load the app.<br>Check your internet connection, then reload the page.";
+      if (!boot) return;
+      var where = e.filename ? e.filename.split('/').pop() + (e.lineno ? ':' + e.lineno : '') : (e.target && e.target.src ? e.target.src.split('/').pop() : 'unknown file');
+      var msg = e.message || (e.error && e.error.message) || 'a script failed to load';
+      boot.innerHTML = "Something went wrong loading the app.<br><span style='opacity:.7'>" +
+        String(msg).replace(/</g, '&lt;') + "<br>(" + where.replace(/</g, '&lt;') + ")</span><br>Please screenshot this and send it back.";
     }, true);
     setTimeout(function () {
       var boot = document.getElementById('boot');
@@ -326,7 +330,7 @@
   <script src="./vendor/react-dom.production.min.js"></script>
   <script src="./vendor/babel.min.js"></script>
 
-  <script type="text/babel" data-presets="react">
+  <script type="text/plain" id="app-source">
   const { useState, useEffect, useRef, useCallback } = React;
 
   /* ---------- IndexedDB ---------- */
@@ -1176,6 +1180,18 @@
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
   }
+  </script>
+
+  <script>
+    // Transform and run the app source manually (classic JSX runtime, since
+    // React is loaded as a plain global, not an ES module).
+    var src = document.getElementById('app-source').textContent;
+    var out = Babel.transform(src, {
+      presets: [['react', { runtime: 'classic' }]]
+    }).code;
+    var s = document.createElement('script');
+    s.text = out;
+    document.head.appendChild(s);
   </script>
 </body>
 </html>
