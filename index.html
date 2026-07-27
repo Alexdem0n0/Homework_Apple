@@ -85,6 +85,31 @@
       background: #000;
     }
     .brand { display: flex; align-items: center; gap: 12px; }
+    .homebtn { position: absolute; top: calc(14px + env(safe-area-inset-top)); right: 16px; z-index: 12;
+      width: 40px; height: 40px; border: 1px solid var(--line-strong); background: #17171b; color: #cfcfd4;
+      display: grid; place-items: center; cursor: pointer; transition: transform .15s; }
+    .homebtn:active { transform: scale(.9); }
+    .homebtn svg { width: 18px; height: 18px; }
+
+    /* hub / home screen */
+    .hub-header { position: sticky; top: 0; z-index: 10; padding: calc(16px + env(safe-area-inset-top)) 18px 14px; border-bottom: 1px solid var(--line); background: #000; }
+    .hub-hero { padding: 34px 2px 20px; }
+    .hub-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 6px 0 40px; }
+    .hub-card { text-align: left; display: flex; flex-direction: column; gap: 8px; border: 1px solid var(--line);
+      background: var(--panel-lit); box-shadow: 0 1px 0 rgba(255,255,255,0.03) inset, 0 10px 30px rgba(0,0,0,0.4);
+      padding: 18px 16px; cursor: pointer; min-height: 122px; color: var(--text); font-family: inherit; transition: transform .15s, border-color .2s; }
+    .hub-card:active { transform: scale(.97); border-color: var(--line-strong); }
+    .hub-ic { font-size: 27px; line-height: 1; }
+    .hub-name { font-size: 15px; font-weight: 600; letter-spacing: .2px; margin-top: 4px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .hub-sub { font-size: 11.5px; color: var(--muted); line-height: 1.45; }
+    .hub-card.soon { opacity: .7; }
+    .soon-tag { font-size: 8px; letter-spacing: 1px; text-transform: uppercase; color: var(--faint); border: 1px solid var(--line); padding: 2px 5px; }
+
+    /* notes list */
+    .note-row { display: flex; gap: 12px; align-items: flex-start; }
+    .note-body { flex: 1; min-width: 0; }
+    .pin { flex: 0 0 auto; background: none; border: none; color: var(--faint); font-size: 19px; cursor: pointer; line-height: 1; padding: 2px 4px; }
+    .pin.on { color: #ead24a; }
     .ghost { width: 30px; height: 30px; flex: 0 0 auto; animation: floaty 4.5s ease-in-out infinite; }
     .wordmark { line-height: 0.92; font-weight: 700; letter-spacing: 3px; font-size: 15px; }
     .wordmark .ring { display: inline-block; width: 0.6em; height: 0.6em; border: 2px solid currentColor;
@@ -465,7 +490,7 @@
   const GRADE_MAX = 20; // Venezuela 0–20 scale
 
   /* ---------- IndexedDB ---------- */
-  const DB_NAME = 'homework-tracker', DB_VER = 3;
+  const DB_NAME = 'homework-tracker', DB_VER = 4;
   let db;
   function openDB() {
     return new Promise((resolve, reject) => {
@@ -479,6 +504,7 @@
         }
         if (!d.objectStoreNames.contains('semesters')) d.createObjectStore('semesters', { keyPath: 'id' });
         if (!d.objectStoreNames.contains('classes')) d.createObjectStore('classes', { keyPath: 'id' });
+        if (!d.objectStoreNames.contains('notes')) d.createObjectStore('notes', { keyPath: 'id' });
       };
       req.onsuccess = () => resolve(req.result);
       req.onerror = () => reject(req.error);
@@ -499,6 +525,9 @@
   const getAllClasses = () => reqP(store('classes', 'readonly').getAll());
   const putClass = (o) => reqP(store('classes', 'readwrite').put(o));
   const delClassRec = (id) => reqP(store('classes', 'readwrite').delete(id));
+  const getAllNotes = () => reqP(store('notes', 'readonly').getAll());
+  const putNote = (o) => reqP(store('notes', 'readwrite').put(o));
+  const delNoteRec = (id) => reqP(store('notes', 'readwrite').delete(id));
 
   const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
   const isImage = (a) => (a.type || '').startsWith('image/');
@@ -1453,8 +1482,8 @@
     );
   }
 
-  /* ---------- App ---------- */
-  function App() {
+  /* ---------- Homework module ---------- */
+  function HomeworkApp({ onHome }) {
     const [items, setItems] = useState([]);
     const [attsByHw, setAttsByHw] = useState({});
     const [filter, setFilter] = useState('todo');
@@ -1581,6 +1610,9 @@
     return (
       <React.Fragment>
         <header>
+          <button className="homebtn" onClick={onHome} aria-label="All apps">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+          </button>
           <div className="brand">
             <Ghost />
             <div className="wordmark"><Flick text="HOME" /><br/><Flick text="WORK" /></div>
@@ -1676,7 +1708,163 @@
     );
   }
 
-  ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  /* ---------- Notes module ---------- */
+  function NoteSheet({ initial, onClose, onSaved, onDelete }) {
+    const [title, setTitle] = useState(initial ? (initial.title || '') : '');
+    const [body, setBody] = useState(initial ? (initial.body || '') : '');
+    const [color, setColor] = useState(initial ? (initial.color || '') : '');
+    const ref = useRef(null);
+    useEffect(() => { setTimeout(() => ref.current && ref.current.focus(), 120); }, []);
+    async function save() {
+      const t = title.trim(), bd = body.trim();
+      if (!t && !bd) { onClose(); return; }
+      const id = initial ? initial.id : uid();
+      await putNote({ id, title: t, body: bd, color, pinned: initial ? !!initial.pinned : false,
+        createdAt: initial ? initial.createdAt : Date.now(), updatedAt: Date.now() });
+      onSaved();
+    }
+    return (
+      <div className="backdrop" onClick={(e) => { if (e.target.classList.contains('backdrop')) onClose(); }}>
+        <div className="sheet">
+          <div className="sheet-top">
+            <h2>{initial ? 'Edit note' : 'New note'}</h2>
+            <button className="sheet-x" onClick={onClose} aria-label="Close">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+            </button>
+          </div>
+          <label>Title</label>
+          <input ref={ref} type="text" value={title} onChange={e => setTitle(e.target.value)} placeholder="Title" autoComplete="off" style={color ? { color } : undefined} />
+          <label>Note</label>
+          <textarea value={body} onChange={e => setBody(e.target.value)} placeholder="Write anything…" style={{ minHeight: '180px' }} />
+          <label>Colour</label>
+          <div className="swatches">
+            <button type="button" className={'swatch none' + (color ? '' : ' on')} onClick={() => setColor('')} title="Default"></button>
+            {COLORS.map(c => <button type="button" key={c} className={'swatch' + (color === c ? ' on' : '')} style={{ background: c }} onClick={() => setColor(c)}></button>)}
+          </div>
+          {initial &&
+            <div className="sheet-actions"><button className="btn danger wide-one" onClick={() => onDelete(initial)}>Delete note</button></div>}
+          <div style={{ height: '78px' }}></div>
+        </div>
+        <div className="sheet-fabs">
+          <button className="fab save" onClick={save} aria-label="Save note">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12l5 5L20 6"/></svg>
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  function NotesApp({ onHome }) {
+    const [notes, setNotes] = useState([]);
+    const [search, setSearch] = useState('');
+    const [sheet, setSheet] = useState(null);
+    const load = useCallback(async () => { setNotes(await getAllNotes()); }, []);
+    useEffect(() => { openDB().then(d => { db = d; load(); }); }, []);
+    async function togglePin(n) { await putNote({ ...n, pinned: !n.pinned, updatedAt: Date.now() }); load(); }
+    async function del(n) { if (!confirm('Delete this note?')) return; await delNoteRec(n.id); setSheet(null); load(); }
+    let view = notes.slice();
+    if (search.trim()) { const t = search.toLowerCase(); view = view.filter(n => (n.title || '').toLowerCase().includes(t) || (n.body || '').toLowerCase().includes(t)); }
+    view.sort((a, b) => { if (!!a.pinned !== !!b.pinned) return a.pinned ? -1 : 1; return (b.updatedAt || 0) - (a.updatedAt || 0); });
+    return (
+      <React.Fragment>
+        <header>
+          <button className="homebtn" onClick={onHome} aria-label="All apps">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+          </button>
+          <div className="brand"><Ghost /><div className="wordmark"><Flick text="NOTES" /></div></div>
+        </header>
+        <main>
+          <div className="toolbar"><input className="search" placeholder="Search notes…" value={search} onChange={e => setSearch(e.target.value)} /></div>
+          {view.length === 0
+            ? <div className="empty">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.3"><path d="M5 4h14v16H5z"/><path d="M8 9h8M8 13h6"/></svg>
+                <p>No notes yet</p>
+              </div>
+            : view.map(n =>
+                <div key={n.id} className="card" onClick={() => setSheet({ editing: n })} style={{ cursor: 'pointer' }}>
+                  <div className="note-row">
+                    <div className="note-body">
+                      {n.title && <p className="title" style={n.color ? { color: n.color } : undefined}>{n.title}</p>}
+                      {n.body && <p className="notes" style={{ marginTop: n.title ? '6px' : 0 }}>{n.body.length > 240 ? n.body.slice(0, 240) + '…' : n.body}</p>}
+                    </div>
+                    <button className={'pin' + (n.pinned ? ' on' : '')} onClick={(e) => { e.stopPropagation(); togglePin(n); }} aria-label="Pin">★</button>
+                  </div>
+                </div>)}
+        </main>
+        <button className="add" onClick={() => setSheet({})} aria-label="Add note">＋</button>
+        {sheet && <NoteSheet initial={sheet.editing || null} onClose={() => setSheet(null)} onSaved={() => { setSheet(null); load(); }} onDelete={del} />}
+      </React.Fragment>
+    );
+  }
+
+  /* ---------- Placeholder for modules not built yet ---------- */
+  function ComingSoon({ name, icon, onHome }) {
+    return (
+      <React.Fragment>
+        <header>
+          <button className="homebtn" onClick={onHome} aria-label="All apps">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+          </button>
+          <div className="brand"><Ghost /><div className="wordmark"><Flick text={name.toUpperCase()} /></div></div>
+        </header>
+        <main>
+          <div className="empty" style={{ paddingTop: '80px' }}>
+            <div style={{ fontSize: '46px', marginBottom: '10px' }}>{icon}</div>
+            <p>{name}</p>
+            <p style={{ marginTop: '12px', textTransform: 'none', letterSpacing: 0, fontSize: '13px', color: 'var(--muted)', lineHeight: 1.6 }}>
+              Coming soon — just tell me to build this next and I will. 🙂
+            </p>
+          </div>
+        </main>
+      </React.Fragment>
+    );
+  }
+
+  /* ---------- Hub (home screen) ---------- */
+  function Hub({ onOpen }) {
+    const mods = [
+      { id: 'homework', icon: '📚', name: 'Homework', sub: 'Assignments, exams, grades, schedule', ready: true },
+      { id: 'finances', icon: '💵', name: 'Finances', sub: 'Money, expenses, subscriptions', ready: false },
+      { id: 'notes', icon: '📝', name: 'Notes', sub: 'Quick notes & lists', ready: true },
+      { id: 'ideas', icon: '💡', name: 'Ideas & Projects', sub: 'Ideas, projects, courses, languages', ready: false },
+      { id: 'health', icon: '❤️', name: 'Health', sub: 'Habits, workouts, water, mood', ready: false },
+    ];
+    return (
+      <React.Fragment>
+        <header className="hub-header">
+          <div className="brand"><Ghost /><div className="wordmark"><Flick text="PHANTOM" /></div></div>
+        </header>
+        <main>
+          <section className="hub-hero">
+            <p className="eyebrow">Your life · organized</p>
+            <h1 className="hero-title">Pick a<br/><span className="dim">space.</span></h1>
+          </section>
+          <div className="hub-grid">
+            {mods.map(m =>
+              <button key={m.id} className={'hub-card' + (m.ready ? '' : ' soon')} onClick={() => onOpen(m.id)}>
+                <span className="hub-ic">{m.icon}</span>
+                <span className="hub-name">{m.name}{!m.ready && <span className="soon-tag">Soon</span>}</span>
+                <span className="hub-sub">{m.sub}</span>
+              </button>)}
+          </div>
+        </main>
+      </React.Fragment>
+    );
+  }
+
+  /* ---------- Root: switches between the hub and each module ---------- */
+  function Root() {
+    const [screen, setScreen] = useState('hub');
+    const home = () => setScreen('hub');
+    if (screen === 'homework') return <HomeworkApp onHome={home} />;
+    if (screen === 'notes') return <NotesApp onHome={home} />;
+    if (screen === 'finances') return <ComingSoon name="Finances" icon="💵" onHome={home} />;
+    if (screen === 'ideas') return <ComingSoon name="Ideas & Projects" icon="💡" onHome={home} />;
+    if (screen === 'health') return <ComingSoon name="Health" icon="❤️" onHome={home} />;
+    return <Hub onOpen={setScreen} />;
+  }
+
+  ReactDOM.createRoot(document.getElementById('root')).render(<Root />);
 
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
