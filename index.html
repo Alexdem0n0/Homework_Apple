@@ -85,11 +85,16 @@
       background: #000;
     }
     .brand { display: flex; align-items: center; gap: 12px; }
-    .homebtn { position: absolute; top: calc(14px + env(safe-area-inset-top)); right: 16px; z-index: 12;
+    .homebtn, .backbtn { position: absolute; top: calc(14px + env(safe-area-inset-top)); z-index: 12;
       width: 40px; height: 40px; border: 1px solid var(--line-strong); background: #17171b; color: #cfcfd4;
       display: grid; place-items: center; cursor: pointer; transition: transform .15s; }
-    .homebtn:active { transform: scale(.9); }
+    .homebtn { right: 16px; }
+    .backbtn { left: 16px; }
+    .homebtn:active, .backbtn:active { transform: scale(.9); }
     .homebtn svg { width: 18px; height: 18px; }
+    .backbtn svg { width: 21px; height: 21px; }
+    /* in a module, centre the logo between the back (left) and home (right) buttons */
+    header.has-nav .brand { justify-content: center; padding: 0 46px; }
 
     /* hub / home screen */
     .hub-header { position: sticky; top: 0; z-index: 10; padding: calc(16px + env(safe-area-inset-top)) 18px 14px; border-bottom: 1px solid var(--line); background: #000; }
@@ -1483,7 +1488,7 @@
   }
 
   /* ---------- Homework module ---------- */
-  function HomeworkApp({ onHome }) {
+  function HomeworkApp({ onHome, onBack }) {
     const [items, setItems] = useState([]);
     const [attsByHw, setAttsByHw] = useState({});
     const [filter, setFilter] = useState('todo');
@@ -1609,8 +1614,11 @@
 
     return (
       <React.Fragment>
-        <header>
-          <button className="homebtn" onClick={onHome} aria-label="All apps">
+        <header className="has-nav">
+          <button className="backbtn" onClick={onBack} aria-label="Back">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 5l-7 7 7 7"/></svg>
+          </button>
+          <button className="homebtn" onClick={onHome} aria-label="Home">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
           </button>
           <div className="brand">
@@ -1754,7 +1762,7 @@
     );
   }
 
-  function NotesApp({ onHome }) {
+  function NotesApp({ onHome, onBack }) {
     const [notes, setNotes] = useState([]);
     const [search, setSearch] = useState('');
     const [sheet, setSheet] = useState(null);
@@ -1767,8 +1775,11 @@
     view.sort((a, b) => { if (!!a.pinned !== !!b.pinned) return a.pinned ? -1 : 1; return (b.updatedAt || 0) - (a.updatedAt || 0); });
     return (
       <React.Fragment>
-        <header>
-          <button className="homebtn" onClick={onHome} aria-label="All apps">
+        <header className="has-nav">
+          <button className="backbtn" onClick={onBack} aria-label="Back">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 5l-7 7 7 7"/></svg>
+          </button>
+          <button className="homebtn" onClick={onHome} aria-label="Home">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
           </button>
           <div className="brand"><Ghost /><div className="wordmark"><Flick text="NOTES" /></div></div>
@@ -1798,11 +1809,14 @@
   }
 
   /* ---------- Placeholder for modules not built yet ---------- */
-  function ComingSoon({ name, icon, onHome }) {
+  function ComingSoon({ name, icon, onHome, onBack }) {
     return (
       <React.Fragment>
-        <header>
-          <button className="homebtn" onClick={onHome} aria-label="All apps">
+        <header className="has-nav">
+          <button className="backbtn" onClick={onBack} aria-label="Back">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 5l-7 7 7 7"/></svg>
+          </button>
+          <button className="homebtn" onClick={onHome} aria-label="Home">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
           </button>
           <div className="brand"><Ghost /><div className="wordmark"><Flick text={name.toUpperCase()} /></div></div>
@@ -1854,14 +1868,18 @@
 
   /* ---------- Root: switches between the hub and each module ---------- */
   function Root() {
-    const [screen, setScreen] = useState('hub');
-    const home = () => setScreen('hub');
-    if (screen === 'homework') return <HomeworkApp onHome={home} />;
-    if (screen === 'notes') return <NotesApp onHome={home} />;
-    if (screen === 'finances') return <ComingSoon name="Finances" icon="💵" onHome={home} />;
-    if (screen === 'ideas') return <ComingSoon name="Ideas & Projects" icon="💡" onHome={home} />;
-    if (screen === 'health') return <ComingSoon name="Health" icon="❤️" onHome={home} />;
-    return <Hub onOpen={setScreen} />;
+    const [stack, setStack] = useState(['hub']);
+    const screen = stack[stack.length - 1];
+    const go = (s) => setStack(st => [...st, s]);
+    const back = () => setStack(st => st.length > 1 ? st.slice(0, -1) : st);
+    const home = () => setStack(['hub']);
+    const nav = { onBack: back, onHome: home };
+    if (screen === 'homework') return <HomeworkApp {...nav} />;
+    if (screen === 'notes') return <NotesApp {...nav} />;
+    if (screen === 'finances') return <ComingSoon name="Finances" icon="💵" {...nav} />;
+    if (screen === 'ideas') return <ComingSoon name="Ideas & Projects" icon="💡" {...nav} />;
+    if (screen === 'health') return <ComingSoon name="Health" icon="❤️" {...nav} />;
+    return <Hub onOpen={go} />;
   }
 
   ReactDOM.createRoot(document.getElementById('root')).render(<Root />);
