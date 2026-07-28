@@ -111,10 +111,15 @@
     .soon-tag { font-size: 8px; letter-spacing: 1px; text-transform: uppercase; color: var(--faint); border: 1px solid var(--line); padding: 2px 5px; }
 
     /* notes list */
+    .note-card { padding: 14px 16px; }
     .note-row { display: flex; gap: 12px; align-items: flex-start; }
     .note-body { flex: 1; min-width: 0; }
+    .note-line { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+    .note-prev { font-size: 13px; color: var(--muted); margin: 4px 0 0; }
     .pin { flex: 0 0 auto; background: none; border: none; color: var(--faint); font-size: 19px; cursor: pointer; line-height: 1; padding: 2px 4px; }
     .pin.on { color: #ead24a; }
+    /* full note in the read-only view */
+    .note-full { white-space: pre-wrap; word-break: break-word; line-height: 1.6; font-size: 15px; color: rgba(255,255,255,0.85); margin: 6px 0 0; }
     .ghost { width: 30px; height: 30px; flex: 0 0 auto; animation: floaty 4.5s ease-in-out infinite; }
     .wordmark { line-height: 0.92; font-weight: 700; letter-spacing: 3px; font-size: 15px; }
     .wordmark .ring { display: inline-block; width: 0.6em; height: 0.6em; border: 2px solid currentColor;
@@ -1762,17 +1767,44 @@
     );
   }
 
+  function NoteView({ note, onClose, onEdit, onDelete, onTogglePin }) {
+    return (
+      <div className="backdrop" onClick={(e) => { if (e.target.classList.contains('backdrop')) onClose(); }}>
+        <div className="sheet">
+          <div className="sheet-top">
+            <h2>Note</h2>
+            <button className="sheet-x" onClick={onClose} aria-label="Close">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+            </button>
+          </div>
+          {note.title && <p className="detail-title" style={note.color ? { color: note.color } : undefined}>{note.title}</p>}
+          {note.body && <p className="note-full">{note.body}</p>}
+          <div className="detail-foot">
+            <button className="btn primary wide-one" onClick={() => onEdit(note)}>Edit</button>
+            <div className="detail-links">
+              <button className="link" onClick={() => onTogglePin(note)}>{note.pinned ? '★ Unpin' : '☆ Pin'}</button>
+              <button className="link danger" onClick={() => onDelete(note)}>Delete</button>
+            </div>
+          </div>
+          <div style={{ height: '20px' }}></div>
+        </div>
+      </div>
+    );
+  }
+
   function NotesApp({ onHome, onBack }) {
     const [notes, setNotes] = useState([]);
     const [search, setSearch] = useState('');
     const [sheet, setSheet] = useState(null);
+    const [viewId, setViewId] = useState(null);
     const load = useCallback(async () => { setNotes(await getAllNotes()); }, []);
     useEffect(() => { openDB().then(d => { db = d; load(); }); }, []);
     async function togglePin(n) { await putNote({ ...n, pinned: !n.pinned, updatedAt: Date.now() }); load(); }
-    async function del(n) { if (!confirm('Delete this note?')) return; await delNoteRec(n.id); setSheet(null); load(); }
+    async function del(n) { if (!confirm('Delete this note?')) return; await delNoteRec(n.id); setSheet(null); setViewId(null); load(); }
     let view = notes.slice();
     if (search.trim()) { const t = search.toLowerCase(); view = view.filter(n => (n.title || '').toLowerCase().includes(t) || (n.body || '').toLowerCase().includes(t)); }
     view.sort((a, b) => { if (!!a.pinned !== !!b.pinned) return a.pinned ? -1 : 1; return (b.updatedAt || 0) - (a.updatedAt || 0); });
+    const viewNote = viewId ? notes.find(n => n.id === viewId) : null;
     return (
       <React.Fragment>
         <header className="has-nav">
@@ -1792,17 +1824,20 @@
                 <p>No notes yet</p>
               </div>
             : view.map(n =>
-                <div key={n.id} className="card" onClick={() => setSheet({ editing: n })} style={{ cursor: 'pointer' }}>
+                <div key={n.id} className="card note-card" onClick={() => setViewId(n.id)} style={{ cursor: 'pointer' }}>
                   <div className="note-row">
                     <div className="note-body">
-                      {n.title && <p className="title" style={n.color ? { color: n.color } : undefined}>{n.title}</p>}
-                      {n.body && <p className="notes" style={{ marginTop: n.title ? '6px' : 0 }}>{n.body.length > 240 ? n.body.slice(0, 240) + '…' : n.body}</p>}
+                      <p className="title note-line" style={n.color ? { color: n.color } : undefined}>{n.title || (n.body ? n.body.split('\n')[0] : '(empty note)')}</p>
+                      {n.body && <p className="note-prev note-line">{n.body}</p>}
                     </div>
                     <button className={'pin' + (n.pinned ? ' on' : '')} onClick={(e) => { e.stopPropagation(); togglePin(n); }} aria-label="Pin">★</button>
                   </div>
                 </div>)}
         </main>
         <button className="add" onClick={() => setSheet({})} aria-label="Add note">＋</button>
+        {viewNote && <NoteView note={viewNote} onClose={() => setViewId(null)}
+          onEdit={(n) => { setViewId(null); setSheet({ editing: n }); }}
+          onDelete={del} onTogglePin={togglePin} />}
         {sheet && <NoteSheet initial={sheet.editing || null} onClose={() => setSheet(null)} onSaved={() => { setSheet(null); load(); }} onDelete={del} />}
       </React.Fragment>
     );
