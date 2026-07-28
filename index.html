@@ -120,6 +120,40 @@
     .pin.on { color: #ead24a; }
     /* full note in the read-only view */
     .note-full { white-space: pre-wrap; word-break: break-word; line-height: 1.6; font-size: 15px; color: rgba(255,255,255,0.85); margin: 6px 0 0; }
+
+    /* checklist group titles */
+    .group-head { font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: var(--text);
+      margin: 16px 0 2px; padding-bottom: 6px; border-bottom: 1px solid var(--line); }
+    .head-mark { flex: 0 0 auto; width: 26px; text-align: center; color: var(--faint); font-size: 15px; }
+    .head-input { font-weight: 600; letter-spacing: 1px; }
+
+    /* health */
+    .habit-card { padding: 14px 16px; }
+    .habit-row { display: flex; align-items: center; gap: 14px; }
+    .hcheck { flex: 0 0 auto; width: 46px; height: 46px; border: 1px solid var(--line-strong); background: transparent;
+      font-size: 21px; display: grid; place-items: center; cursor: pointer; transition: background .2s, transform .15s; }
+    .hcheck.on { background: #fff; }
+    .hcheck:active { transform: scale(.9); }
+    .habit-body { flex: 1; min-width: 0; cursor: pointer; }
+    .week-dots { display: flex; gap: 6px; margin-top: 8px; }
+    .week-dots i { width: 13px; height: 13px; border: 1px solid var(--line-strong); display: block; cursor: pointer; }
+    .week-dots i.on { background: #f5f5f7; border-color: #f5f5f7; }
+    .streak { flex: 0 0 auto; font-size: 13px; color: var(--soon); font-family: 'JetBrains Mono', ui-monospace, monospace; }
+
+    /* finances */
+    .fin-totals { display: flex; gap: 12px; padding: 18px 2px 14px; border-bottom: 1px solid var(--line); }
+    .fin-totals > div { flex: 1; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+    .fin-lab { font-size: 9.5px; letter-spacing: 1.6px; text-transform: uppercase; color: var(--faint); }
+    .fin-val { font-size: 21px; font-weight: 600; letter-spacing: -0.3px; word-break: break-all; }
+    .fin-val.up { color: #5fd08a; } .fin-val.down { color: #e06666; }
+    .fin-combined { font-size: 12px; color: var(--muted); margin: 10px 2px 0; letter-spacing: .3px; }
+    .sec-title { font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: var(--faint); margin: 28px 0 10px; }
+    .fin-row { display: flex; align-items: center; gap: 12px; padding: 13px 15px; }
+    .fin-left { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+    .fin-name { font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .fin-sub { font-size: 11.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .fin-amt { flex: 0 0 auto; font-size: 15px; font-family: 'JetBrains Mono', ui-monospace, monospace; }
+    .fin-amt.up { color: #5fd08a; } .fin-amt.down { color: #e06666; }
     .ghost { width: 30px; height: 30px; flex: 0 0 auto; animation: floaty 4.5s ease-in-out infinite; }
     .wordmark { line-height: 0.92; font-weight: 700; letter-spacing: 3px; font-size: 15px; }
     .wordmark .ring { display: inline-block; width: 0.6em; height: 0.6em; border: 2px solid currentColor;
@@ -500,7 +534,7 @@
   const GRADE_MAX = 20; // Venezuela 0–20 scale
 
   /* ---------- IndexedDB ---------- */
-  const DB_NAME = 'homework-tracker', DB_VER = 4;
+  const DB_NAME = 'homework-tracker', DB_VER = 5;
   let db;
   function openDB() {
     return new Promise((resolve, reject) => {
@@ -515,11 +549,21 @@
         if (!d.objectStoreNames.contains('semesters')) d.createObjectStore('semesters', { keyPath: 'id' });
         if (!d.objectStoreNames.contains('classes')) d.createObjectStore('classes', { keyPath: 'id' });
         if (!d.objectStoreNames.contains('notes')) d.createObjectStore('notes', { keyPath: 'id' });
+        if (!d.objectStoreNames.contains('ideas')) d.createObjectStore('ideas', { keyPath: 'id' });
+        if (!d.objectStoreNames.contains('wallets')) d.createObjectStore('wallets', { keyPath: 'id' });
+        if (!d.objectStoreNames.contains('transactions')) d.createObjectStore('transactions', { keyPath: 'id' });
+        if (!d.objectStoreNames.contains('subs')) d.createObjectStore('subs', { keyPath: 'id' });
+        if (!d.objectStoreNames.contains('habits')) d.createObjectStore('habits', { keyPath: 'id' });
+        if (!d.objectStoreNames.contains('hlog')) d.createObjectStore('hlog', { keyPath: 'key' });
       };
       req.onsuccess = () => resolve(req.result);
       req.onerror = () => reject(req.error);
     });
   }
+  // generic per-store helpers for the newer modules
+  const allOf = (s) => reqP(store(s, 'readonly').getAll());
+  const putIn = (s, o) => reqP(store(s, 'readwrite').put(o));
+  const delFrom = (s, id) => reqP(store(s, 'readwrite').delete(id));
   const store = (s, m) => db.transaction(s, m).objectStore(s);
   const reqP = (r) => new Promise((res, rej) => { r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
   const getAllHW = () => reqP(store('homework', 'readonly').getAll());
@@ -1843,6 +1887,560 @@
     );
   }
 
+  /* ---------- Shared module header ---------- */
+  function ModHeader({ text, onBack, onHome, children }) {
+    return (
+      <header className="has-nav">
+        <button className="backbtn" onClick={onBack} aria-label="Back">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 5l-7 7 7 7"/></svg>
+        </button>
+        <button className="homebtn" onClick={onHome} aria-label="Home">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+        </button>
+        <div className="brand"><Ghost /><div className="wordmark"><Flick text={text} /></div></div>
+        {children}
+      </header>
+    );
+  }
+
+  /* ================= IDEAS & PROJECTS ================= */
+  const IDEA_STATUS = [['idea','Idea'], ['doing','Doing'], ['done','Done']];
+  function IdeaSheet({ initial, onClose, onSaved, onDelete }) {
+    const [title, setTitle] = useState(initial ? (initial.title || '') : '');
+    const [body, setBody] = useState(initial ? (initial.body || '') : '');
+    const [status, setStatus] = useState(initial ? (initial.status || 'idea') : 'idea');
+    const [color, setColor] = useState(initial ? (initial.color || '') : '');
+    const [steps, setSteps] = useState(initial && initial.steps ? initial.steps.map(s => ({ ...s })) : []);
+    const ref = useRef(null);
+    useEffect(() => { setTimeout(() => ref.current && ref.current.focus(), 120); }, []);
+    const addStep = () => setSteps(s => [...s, { id: uid(), text: '', done: false, type: 'item' }]);
+    const addHead = () => setSteps(s => [...s, { id: uid(), text: '', done: false, type: 'head' }]);
+    async function save() {
+      const t = title.trim();
+      if (!t && !body.trim()) { onClose(); return; }
+      const id = initial ? initial.id : uid();
+      await putIn('ideas', { id, title: t, body: body.trim(), status, color,
+        steps: steps.filter(s => s.text.trim()).map(s => ({ id: s.id, text: s.text.trim(), done: !!s.done, type: s.type === 'head' ? 'head' : 'item' })),
+        createdAt: initial ? initial.createdAt : Date.now(), updatedAt: Date.now() });
+      onSaved();
+    }
+    return (
+      <div className="backdrop" onClick={(e) => { if (e.target.classList.contains('backdrop')) onClose(); }}>
+        <div className="sheet">
+          <div className="sheet-top">
+            <h2>{initial ? 'Edit' : 'New idea / project'}</h2>
+            <button className="sheet-x" onClick={onClose} aria-label="Close">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+            </button>
+          </div>
+          <label>Title</label>
+          <input ref={ref} type="text" value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. Learn French · App idea" autoComplete="off" style={color ? { color } : undefined} />
+          <label>Status</label>
+          <div className="daypick">
+            {IDEA_STATUS.map(([v, lbl]) => <button type="button" key={v} className={'dchip' + (status === v ? ' on' : '')} onClick={() => setStatus(v)}>{lbl}</button>)}
+          </div>
+          <label>Details</label>
+          <textarea value={body} onChange={e => setBody(e.target.value)} placeholder="What is it about…" style={{ minHeight: '120px' }} />
+          <label>Checklist</label>
+          {steps.map(st =>
+            st.type === 'head'
+              ? <div className="subtask-row" key={st.id}>
+                  <span className="head-mark">§</span>
+                  <input type="text" className="head-input" value={st.text} onChange={e => setSteps(s => s.map(x => x.id === st.id ? { ...x, text: e.target.value } : x))} placeholder="Group title…" autoComplete="off" />
+                  <button type="button" className="strm" onClick={() => setSteps(s => s.filter(x => x.id !== st.id))} aria-label="Remove">✕</button>
+                </div>
+              : <div className="subtask-row" key={st.id}>
+                  <button type="button" className={'stcheck' + (st.done ? ' on' : '')} onClick={() => setSteps(s => s.map(x => x.id === st.id ? { ...x, done: !x.done } : x))} aria-label="Toggle step">
+                    <svg viewBox="0 0 24 24" fill="none" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12l5 5L20 6"/></svg>
+                  </button>
+                  <input type="text" value={st.text} onChange={e => setSteps(s => s.map(x => x.id === st.id ? { ...x, text: e.target.value } : x))} placeholder="Step…" autoComplete="off" />
+                  <button type="button" className="strm" onClick={() => setSteps(s => s.filter(x => x.id !== st.id))} aria-label="Remove">✕</button>
+                </div>)}
+          <div className="file-btns">
+            <div className="file-btn" onClick={addStep}>＋ Step</div>
+            <div className="file-btn" onClick={addHead}>＋ Title</div>
+          </div>
+          <label>Colour</label>
+          <div className="swatches">
+            <button type="button" className={'swatch none' + (color ? '' : ' on')} onClick={() => setColor('')}></button>
+            {COLORS.map(c => <button type="button" key={c} className={'swatch' + (color === c ? ' on' : '')} style={{ background: c }} onClick={() => setColor(c)}></button>)}
+          </div>
+          {initial && <div className="sheet-actions"><button className="btn danger wide-one" onClick={() => onDelete(initial)}>Delete</button></div>}
+          <div style={{ height: '78px' }}></div>
+        </div>
+        <div className="sheet-fabs">
+          <button className="fab save" onClick={save} aria-label="Save">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12l5 5L20 6"/></svg>
+          </button>
+        </div>
+      </div>
+    );
+  }
+  function IdeaView({ item, onClose, onEdit, onDelete, onToggleStep }) {
+    const steps = item.steps || [];
+    const checkable = steps.filter(s => s.type !== 'head');
+    const done = checkable.filter(s => s.done).length;
+    return (
+      <div className="backdrop" onClick={(e) => { if (e.target.classList.contains('backdrop')) onClose(); }}>
+        <div className="sheet">
+          <div className="sheet-top">
+            <h2>{(IDEA_STATUS.find(s => s[0] === (item.status || 'idea')) || [])[1]}</h2>
+            <button className="sheet-x" onClick={onClose} aria-label="Close">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+            </button>
+          </div>
+          <p className="detail-title" style={item.color ? { color: item.color } : undefined}>{item.title || '(untitled)'}</p>
+          {item.body && <p className="note-full">{item.body}</p>}
+          {steps.length > 0 &&
+            <div className="subtasks">
+              <span className="stitle">Checklist · {done}/{checkable.length}</span>
+              {steps.map(st =>
+                st.type === 'head'
+                  ? <p key={st.id} className="group-head">{st.text}</p>
+                  : <div key={st.id} className={'subtask' + (st.done ? ' done' : '')} onClick={() => onToggleStep(item, st.id)}>
+                      <span className="box"><svg viewBox="0 0 24 24" fill="none" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12l5 5L20 6"/></svg></span>
+                      <span className="stx">{st.text}</span>
+                    </div>)}
+            </div>}
+          <div className="detail-foot">
+            <button className="btn primary wide-one" onClick={() => onEdit(item)}>Edit</button>
+            <div className="detail-links"><button className="link danger" onClick={() => onDelete(item)}>Delete</button></div>
+          </div>
+          <div style={{ height: '20px' }}></div>
+        </div>
+      </div>
+    );
+  }
+  function IdeasApp({ onHome, onBack }) {
+    const [items, setItems] = useState([]);
+    const [filter, setFilter] = useState('all');
+    const [sheet, setSheet] = useState(null);
+    const [viewId, setViewId] = useState(null);
+    const load = useCallback(async () => { setItems(await allOf('ideas')); }, []);
+    useEffect(() => { openDB().then(d => { db = d; load(); }); }, []);
+    async function toggleStep(item, sid) {
+      await putIn('ideas', { ...item, steps: (item.steps || []).map(s => s.id === sid ? { ...s, done: !s.done } : s) });
+      load();
+    }
+    async function del(it) { if (!confirm('Delete this?')) return; await delFrom('ideas', it.id); setSheet(null); setViewId(null); load(); }
+    let view = filter === 'all' ? items.slice() : items.filter(i => (i.status || 'idea') === filter);
+    view.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+    const viewItem = viewId ? items.find(i => i.id === viewId) : null;
+    return (
+      <React.Fragment>
+        <ModHeader text="IDEAS" onBack={onBack} onHome={onHome} />
+        <main>
+          <div className="filters">
+            {[['all','All']].concat(IDEA_STATUS).map(([f, lbl]) =>
+              <button key={f} className={filter === f ? 'active' : ''} onClick={() => setFilter(f)}>{lbl}</button>)}
+          </div>
+          {view.length === 0
+            ? <div className="empty">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.3"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 1 4 10.5V16H8v-2.5A6 6 0 0 1 12 3Z"/></svg>
+                <p>Nothing here yet</p>
+              </div>
+            : view.map(n => {
+                const steps = (n.steps || []).filter(s => s.type !== 'head'); const done = steps.filter(s => s.done).length;
+                return (
+                  <div key={n.id} className="card note-card" onClick={() => setViewId(n.id)} style={{ cursor: 'pointer' }}>
+                    <p className="title note-line" style={n.color ? { color: n.color } : undefined}>{n.title || '(untitled)'}</p>
+                    <div className="meta" style={{ marginTop: '7px' }}>
+                      <span className="tag">{(IDEA_STATUS.find(s => s[0] === (n.status || 'idea')) || [])[1]}</span>
+                      {steps.length > 0 && <span className="tag">{done}/{steps.length} done</span>}
+                    </div>
+                  </div>
+                );
+              })}
+        </main>
+        <button className="add" onClick={() => setSheet({})} aria-label="Add">＋</button>
+        {viewItem && <IdeaView item={viewItem} onClose={() => setViewId(null)} onEdit={(i) => { setViewId(null); setSheet({ editing: i }); }} onDelete={del} onToggleStep={toggleStep} />}
+        {sheet && <IdeaSheet initial={sheet.editing || null} onClose={() => setSheet(null)} onSaved={() => { setSheet(null); load(); }} onDelete={del} />}
+      </React.Fragment>
+    );
+  }
+
+  /* ================= HEALTH (habits + streaks) ================= */
+  const todayIsoStr = () => toIso(new Date());
+  function HabitSheet({ initial, onClose, onSaved, onDelete }) {
+    const [name, setName] = useState(initial ? initial.name : '');
+    const [icon, setIcon] = useState(initial ? (initial.icon || '💧') : '💧');
+    const [color, setColor] = useState(initial ? (initial.color || '') : '');
+    const ICONS = ['💧','🏋️','🛏️','💊','🥗','🚶','🧘','📖','🦷','☀️'];
+    async function save() {
+      if (!name.trim()) { onClose(); return; }
+      const id = initial ? initial.id : uid();
+      await putIn('habits', { id, name: name.trim(), icon, color, createdAt: initial ? initial.createdAt : Date.now() });
+      onSaved();
+    }
+    return (
+      <div className="backdrop" onClick={(e) => { if (e.target.classList.contains('backdrop')) onClose(); }}>
+        <div className="sheet">
+          <div className="sheet-top">
+            <h2>{initial ? 'Edit habit' : 'New habit'}</h2>
+            <button className="sheet-x" onClick={onClose} aria-label="Close">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+            </button>
+          </div>
+          <label>Habit</label>
+          <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Drink 2L of water" autoComplete="off" />
+          <label>Icon</label>
+          <div className="daypick">
+            {ICONS.map(ic => <button type="button" key={ic} className={'dchip' + (icon === ic ? ' on' : '')} onClick={() => setIcon(ic)} style={{ fontSize: '17px' }}>{ic}</button>)}
+          </div>
+          <label>Colour</label>
+          <div className="swatches">
+            <button type="button" className={'swatch none' + (color ? '' : ' on')} onClick={() => setColor('')}></button>
+            {COLORS.map(c => <button type="button" key={c} className={'swatch' + (color === c ? ' on' : '')} style={{ background: c }} onClick={() => setColor(c)}></button>)}
+          </div>
+          {initial && <div className="sheet-actions"><button className="btn danger wide-one" onClick={() => onDelete(initial)}>Delete habit</button></div>}
+          <div style={{ height: '78px' }}></div>
+        </div>
+        <div className="sheet-fabs">
+          <button className="fab save" onClick={save} aria-label="Save habit">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12l5 5L20 6"/></svg>
+          </button>
+        </div>
+      </div>
+    );
+  }
+  function HealthApp({ onHome, onBack }) {
+    const [habits, setHabits] = useState([]);
+    const [log, setLog] = useState({});          // key `${habitId}|${iso}` -> true
+    const [sheet, setSheet] = useState(null);
+    const load = useCallback(async () => {
+      setHabits(await allOf('habits'));
+      const rows = await allOf('hlog'); const m = {};
+      for (const r of rows) m[r.key] = true;
+      setLog(m);
+    }, []);
+    useEffect(() => { openDB().then(d => { db = d; load(); }); }, []);
+    const dayIso = (back) => { const d = new Date(); d.setDate(d.getDate() - back); return toIso(d); };
+    const isDone = (h, iso) => !!log[h.id + '|' + iso];
+    async function toggle(h, iso) {
+      const key = h.id + '|' + iso;
+      if (log[key]) await delFrom('hlog', key); else await putIn('hlog', { key, habitId: h.id, date: iso });
+      load();
+    }
+    function streak(h) {
+      let n = 0;
+      for (let i = 0; i < 400; i++) {
+        const iso = dayIso(i);
+        if (isDone(h, iso)) n++;
+        else if (i > 0) break;            // today not done yet doesn't break the streak
+        else if (i === 0) continue;
+      }
+      return n;
+    }
+    async function del(h) {
+      if (!confirm('Delete this habit and its history?')) return;
+      await delFrom('habits', h.id);
+      for (const k of Object.keys(log)) if (k.startsWith(h.id + '|')) await delFrom('hlog', k);
+      setSheet(null); load();
+    }
+    const today = todayIsoStr();
+    const doneToday = habits.filter(h => isDone(h, today)).length;
+    return (
+      <React.Fragment>
+        <ModHeader text="HEALTH" onBack={onBack} onHome={onHome} />
+        <main>
+          <div className="grades-overall">
+            <span className="gnum">{doneToday}<small> / {habits.length}</small></span>
+            <span className="glabel">Done<br/>today</span>
+          </div>
+          {habits.length === 0
+            ? <div className="empty">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.3"><path d="M12 21s-7-4.5-9-9a5 5 0 0 1 9-3 5 5 0 0 1 9 3c-2 4.5-9 9-9 9Z"/></svg>
+                <p>No habits yet — tap ＋</p>
+              </div>
+            : habits.map(h => {
+                const st = streak(h);
+                return (
+                  <div key={h.id} className="card habit-card">
+                    <div className="habit-row">
+                      <button className={'hcheck' + (isDone(h, today) ? ' on' : '')} onClick={() => toggle(h, today)} aria-label="Done today">
+                        <span>{h.icon || '•'}</span>
+                      </button>
+                      <div className="habit-body" onClick={() => setSheet({ editing: h })}>
+                        <p className="title" style={h.color ? { color: h.color } : undefined}>{h.name}</p>
+                        <div className="week-dots">
+                          {[6,5,4,3,2,1,0].map(b => {
+                            const iso = dayIso(b);
+                            return <i key={b} className={isDone(h, iso) ? 'on' : ''} style={isDone(h, iso) && h.color ? { background: h.color } : undefined}
+                              onClick={(e) => { e.stopPropagation(); toggle(h, iso); }}></i>;
+                          })}
+                        </div>
+                      </div>
+                      <span className="streak">{st > 0 ? '🔥 ' + st : '—'}</span>
+                    </div>
+                  </div>
+                );
+              })}
+        </main>
+        <button className="add" onClick={() => setSheet({})} aria-label="Add habit">＋</button>
+        {sheet && <HabitSheet initial={sheet.editing || null} onClose={() => setSheet(null)} onSaved={() => { setSheet(null); load(); }} onDelete={del} />}
+      </React.Fragment>
+    );
+  }
+
+  /* ================= FINANCES (USD + Bs, Venezuela) ================= */
+  const CUR = ['USD', 'Bs'];
+  const CAT = ['Food','Transport','School','Fun','Health','Home','Gift','Other'];
+  const money = (n, c) => (c === 'Bs' ? 'Bs ' : '$') + (Math.round(n * 100) / 100).toLocaleString(LOC, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  function WalletSheet({ initial, onClose, onSaved, onDelete }) {
+    const [name, setName] = useState(initial ? initial.name : '');
+    const [cur, setCur] = useState(initial ? initial.cur : 'USD');
+    const [start, setStart] = useState(initial ? String(initial.start != null ? initial.start : 0) : '');
+    async function save() {
+      if (!name.trim()) { onClose(); return; }
+      const id = initial ? initial.id : uid();
+      const s = parseFloat(String(start).replace(',', '.'));
+      await putIn('wallets', { id, name: name.trim(), cur, start: isNaN(s) ? 0 : s, createdAt: initial ? initial.createdAt : Date.now() });
+      onSaved();
+    }
+    return (
+      <div className="backdrop" onClick={(e) => { if (e.target.classList.contains('backdrop')) onClose(); }}>
+        <div className="sheet">
+          <div className="sheet-top">
+            <h2>{initial ? 'Edit wallet' : 'New wallet'}</h2>
+            <button className="sheet-x" onClick={onClose} aria-label="Close">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+            </button>
+          </div>
+          <label>Name</label>
+          <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Cash · Zelle · Banco · Binance" autoComplete="off" />
+          <label>Currency</label>
+          <div className="daypick">
+            {CUR.map(c => <button type="button" key={c} className={'dchip' + (cur === c ? ' on' : '')} onClick={() => setCur(c)}>{c}</button>)}
+          </div>
+          <label>Starting balance</label>
+          <input type="text" inputMode="decimal" value={start} onChange={e => setStart(e.target.value)} placeholder="0" />
+          {initial && <div className="sheet-actions"><button className="btn danger wide-one" onClick={() => onDelete(initial)}>Delete wallet</button></div>}
+          <div style={{ height: '78px' }}></div>
+        </div>
+        <div className="sheet-fabs">
+          <button className="fab save" onClick={save} aria-label="Save wallet">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12l5 5L20 6"/></svg>
+          </button>
+        </div>
+      </div>
+    );
+  }
+  function TxSheet({ initial, wallets, onClose, onSaved, onDelete }) {
+    const [kind, setKind] = useState(initial ? initial.kind : 'out');   // out | in
+    const [amount, setAmount] = useState(initial ? String(initial.amount) : '');
+    const [cur, setCur] = useState(initial ? initial.cur : 'USD');
+    const [walletId, setWalletId] = useState(initial ? (initial.walletId || '') : (wallets[0] ? wallets[0].id : ''));
+    const [cat, setCat] = useState(initial ? (initial.cat || 'Other') : 'Other');
+    const [note, setNote] = useState(initial ? (initial.note || '') : '');
+    const [date, setDate] = useState(initial ? initial.date : todayIsoStr());
+    const ref = useRef(null);
+    useEffect(() => { setTimeout(() => ref.current && ref.current.focus(), 120); }, []);
+    async function save() {
+      const a = parseFloat(String(amount).replace(',', '.'));
+      if (isNaN(a) || a <= 0) { onClose(); return; }
+      const w = wallets.find(x => x.id === walletId);
+      const id = initial ? initial.id : uid();
+      await putIn('transactions', { id, kind, amount: a, cur: w ? w.cur : cur, walletId, cat, note: note.trim(), date,
+        createdAt: initial ? initial.createdAt : Date.now() });
+      onSaved();
+    }
+    return (
+      <div className="backdrop" onClick={(e) => { if (e.target.classList.contains('backdrop')) onClose(); }}>
+        <div className="sheet">
+          <div className="sheet-top">
+            <h2>{initial ? 'Edit entry' : (kind === 'out' ? 'New expense' : 'New income')}</h2>
+            <button className="sheet-x" onClick={onClose} aria-label="Close">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+            </button>
+          </div>
+          <div className="daypick" style={{ marginBottom: '4px' }}>
+            <button type="button" className={'dchip' + (kind === 'out' ? ' on' : '')} onClick={() => setKind('out')}>− Expense</button>
+            <button type="button" className={'dchip' + (kind === 'in' ? ' on' : '')} onClick={() => setKind('in')}>＋ Income</button>
+          </div>
+          <label>Amount</label>
+          <input ref={ref} type="text" inputMode="decimal" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0.00" style={{ fontSize: '26px' }} />
+          <label>Wallet</label>
+          {wallets.length === 0
+            ? <p className="field-help">Create a wallet first (Money tab → ＋ Wallet).</p>
+            : <div className="daypick">
+                {wallets.map(w => <button type="button" key={w.id} className={'dchip' + (walletId === w.id ? ' on' : '')} onClick={() => setWalletId(w.id)}>{w.name} · {w.cur}</button>)}
+              </div>}
+          <label>Category</label>
+          <div className="daypick">
+            {CAT.map(c => <button type="button" key={c} className={'dchip' + (cat === c ? ' on' : '')} onClick={() => setCat(c)}>{c}</button>)}
+          </div>
+          <label>Date</label>
+          <input type="date" value={date} onChange={e => setDate(e.target.value)} />
+          <label>Note</label>
+          <input type="text" value={note} onChange={e => setNote(e.target.value)} placeholder="What was it for…" autoComplete="off" />
+          {initial && <div className="sheet-actions"><button className="btn danger wide-one" onClick={() => onDelete(initial)}>Delete entry</button></div>}
+          <div style={{ height: '78px' }}></div>
+        </div>
+        <div className="sheet-fabs">
+          <button className="fab save" onClick={save} aria-label="Save entry">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12l5 5L20 6"/></svg>
+          </button>
+        </div>
+      </div>
+    );
+  }
+  function SubSheet({ initial, onClose, onSaved, onDelete }) {
+    const [name, setName] = useState(initial ? initial.name : '');
+    const [amount, setAmount] = useState(initial ? String(initial.amount) : '');
+    const [cur, setCur] = useState(initial ? initial.cur : 'USD');
+    const [day, setDay] = useState(initial ? String(initial.day || 1) : '1');
+    async function save() {
+      const a = parseFloat(String(amount).replace(',', '.'));
+      if (!name.trim() || isNaN(a)) { onClose(); return; }
+      let d = parseInt(day, 10); if (isNaN(d) || d < 1) d = 1; if (d > 31) d = 31;
+      const id = initial ? initial.id : uid();
+      await putIn('subs', { id, name: name.trim(), amount: a, cur, day: d, createdAt: initial ? initial.createdAt : Date.now() });
+      onSaved();
+    }
+    return (
+      <div className="backdrop" onClick={(e) => { if (e.target.classList.contains('backdrop')) onClose(); }}>
+        <div className="sheet">
+          <div className="sheet-top">
+            <h2>{initial ? 'Edit subscription' : 'New subscription'}</h2>
+            <button className="sheet-x" onClick={onClose} aria-label="Close">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+            </button>
+          </div>
+          <label>Name</label>
+          <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Netflix · Spotify" autoComplete="off" />
+          <label>Amount per month</label>
+          <input type="text" inputMode="decimal" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0.00" />
+          <label>Currency</label>
+          <div className="daypick">
+            {CUR.map(c => <button type="button" key={c} className={'dchip' + (cur === c ? ' on' : '')} onClick={() => setCur(c)}>{c}</button>)}
+          </div>
+          <label>Charges on day</label>
+          <input type="text" inputMode="numeric" value={day} onChange={e => setDay(e.target.value)} placeholder="1–31" />
+          {initial && <div className="sheet-actions"><button className="btn danger wide-one" onClick={() => onDelete(initial)}>Delete subscription</button></div>}
+          <div style={{ height: '78px' }}></div>
+        </div>
+        <div className="sheet-fabs">
+          <button className="fab save" onClick={save} aria-label="Save subscription">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12l5 5L20 6"/></svg>
+          </button>
+        </div>
+      </div>
+    );
+  }
+  function FinanceApp({ onHome, onBack }) {
+    const [tab, setTab] = useState('money');     // money | log | subs
+    const [wallets, setWallets] = useState([]);
+    const [txs, setTxs] = useState([]);
+    const [subs, setSubs] = useState([]);
+    const [rate, setRate] = useState(() => localStorage.getItem('fx_rate') || '');
+    const [wSheet, setWSheet] = useState(null);
+    const [tSheet, setTSheet] = useState(null);
+    const [sSheet, setSSheet] = useState(null);
+    const load = useCallback(async () => {
+      setWallets(await allOf('wallets')); setTxs(await allOf('transactions')); setSubs(await allOf('subs'));
+    }, []);
+    useEffect(() => { openDB().then(d => { db = d; load(); }); }, []);
+    const fx = parseFloat(String(rate).replace(',', '.'));
+    const hasFx = !isNaN(fx) && fx > 0;
+    const balOf = (w) => (w.start || 0) + txs.filter(t => t.walletId === w.id)
+      .reduce((s, t) => s + (t.kind === 'in' ? t.amount : -t.amount), 0);
+    const totalUSD = wallets.filter(w => w.cur === 'USD').reduce((s, w) => s + balOf(w), 0);
+    const totalBs = wallets.filter(w => w.cur === 'Bs').reduce((s, w) => s + balOf(w), 0);
+    const combined = hasFx ? totalUSD + totalBs / fx : null;
+    const monthTx = txs.filter(t => (t.date || '').slice(0, 7) === todayIsoStr().slice(0, 7));
+    const inUSD = (t) => t.cur === 'Bs' ? (hasFx ? t.amount / fx : 0) : t.amount;
+    const spentMonth = monthTx.filter(t => t.kind === 'out').reduce((s, t) => s + inUSD(t), 0);
+    const gotMonth = monthTx.filter(t => t.kind === 'in').reduce((s, t) => s + inUSD(t), 0);
+    const subsMonthUSD = subs.reduce((s, x) => s + (x.cur === 'Bs' ? (hasFx ? x.amount / fx : 0) : x.amount), 0);
+    const wname = (id) => (wallets.find(w => w.id === id) || {}).name || '—';
+    const setFx = (v) => { setRate(v); if (v.trim()) localStorage.setItem('fx_rate', v); else localStorage.removeItem('fx_rate'); };
+    async function delWallet(w) {
+      if (!confirm('Delete this wallet? Its entries stay but lose their wallet.')) return;
+      await delFrom('wallets', w.id); setWSheet(null); load();
+    }
+    async function delTx(t) { if (!confirm('Delete this entry?')) return; await delFrom('transactions', t.id); setTSheet(null); load(); }
+    async function delSub(s) { if (!confirm('Delete this subscription?')) return; await delFrom('subs', s.id); setSSheet(null); load(); }
+    const logView = txs.slice().sort((a, b) => (b.date || '').localeCompare(a.date || '') || (b.createdAt || 0) - (a.createdAt || 0));
+    return (
+      <React.Fragment>
+        <ModHeader text="MONEY" onBack={onBack} onHome={onHome}>
+          <div className="viewtabs">
+            <button className={tab === 'money' ? 'active' : ''} onClick={() => setTab('money')}>Money</button>
+            <button className={tab === 'log' ? 'active' : ''} onClick={() => setTab('log')}>Log</button>
+            <button className={tab === 'subs' ? 'active' : ''} onClick={() => setTab('subs')}>Subs</button>
+          </div>
+        </ModHeader>
+        <main>
+          {tab === 'money' ? (
+            <React.Fragment>
+              <div className="fin-totals">
+                <div><span className="fin-lab">USD</span><span className="fin-val">{money(totalUSD, 'USD')}</span></div>
+                <div><span className="fin-lab">Bolívares</span><span className="fin-val">{money(totalBs, 'Bs')}</span></div>
+              </div>
+              {combined != null && <p className="fin-combined">≈ {money(combined, 'USD')} total</p>}
+              <label>Exchange rate (Bs per $1)</label>
+              <input type="text" inputMode="decimal" value={rate} onChange={e => setFx(e.target.value)} placeholder="e.g. 40" />
+              <p className="field-help">Your own rate — used only to show a combined total. Nothing is fetched online.</p>
+              <h3 className="sec-title">Wallets</h3>
+              {wallets.length === 0
+                ? <div className="day-empty">No wallets yet — tap ＋ to add cash, Zelle, bank…</div>
+                : wallets.map(w =>
+                    <div key={w.id} className="card fin-row" onClick={() => setWSheet({ editing: w })} style={{ cursor: 'pointer' }}>
+                      <span className="fin-name">{w.name}</span>
+                      <span className="fin-amt">{money(balOf(w), w.cur)}</span>
+                    </div>)}
+              <div className="sched-actions"><button className="btn ghost wide-one" onClick={() => setWSheet({})}>＋ Wallet</button></div>
+            </React.Fragment>
+          ) : tab === 'log' ? (
+            <React.Fragment>
+              <div className="fin-totals">
+                <div><span className="fin-lab">Spent this month</span><span className="fin-val down">{money(spentMonth, 'USD')}</span></div>
+                <div><span className="fin-lab">Income</span><span className="fin-val up">{money(gotMonth, 'USD')}</span></div>
+              </div>
+              {logView.length === 0
+                ? <div className="empty">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.3"><path d="M3 7h18v12H3z"/><path d="M3 11h18"/></svg>
+                    <p>No entries yet — tap ＋</p>
+                  </div>
+                : logView.map(t =>
+                    <div key={t.id} className="card fin-row" onClick={() => setTSheet({ editing: t })} style={{ cursor: 'pointer' }}>
+                      <div className="fin-left">
+                        <span className="fin-name">{t.note || t.cat}</span>
+                        <span className="fin-sub">{t.cat} · {wname(t.walletId)} · {fmtDate(t.date)}</span>
+                      </div>
+                      <span className={'fin-amt ' + (t.kind === 'in' ? 'up' : 'down')}>{(t.kind === 'in' ? '+' : '−') + money(t.amount, t.cur).replace('-', '')}</span>
+                    </div>)}
+            </React.Fragment>
+          ) : (
+            <React.Fragment>
+              <div className="fin-totals">
+                <div><span className="fin-lab">Per month</span><span className="fin-val">{money(subsMonthUSD, 'USD')}</span></div>
+                <div><span className="fin-lab">Subscriptions</span><span className="fin-val">{subs.length}</span></div>
+              </div>
+              {subs.length === 0
+                ? <div className="empty">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.3"><path d="M4 6h16v12H4z"/><path d="M4 10h16"/></svg>
+                    <p>No subscriptions yet — tap ＋</p>
+                  </div>
+                : subs.slice().sort((a, b) => a.day - b.day).map(s =>
+                    <div key={s.id} className="card fin-row" onClick={() => setSSheet({ editing: s })} style={{ cursor: 'pointer' }}>
+                      <div className="fin-left">
+                        <span className="fin-name">{s.name}</span>
+                        <span className="fin-sub">Day {s.day} of each month</span>
+                      </div>
+                      <span className="fin-amt">{money(s.amount, s.cur)}</span>
+                    </div>)}
+            </React.Fragment>
+          )}
+        </main>
+        <button className="add" onClick={() => { if (tab === 'subs') setSSheet({}); else if (tab === 'money') setWSheet({}); else setTSheet({}); }} aria-label="Add">＋</button>
+        {wSheet && <WalletSheet initial={wSheet.editing || null} onClose={() => setWSheet(null)} onSaved={() => { setWSheet(null); load(); }} onDelete={delWallet} />}
+        {tSheet && <TxSheet initial={tSheet.editing || null} wallets={wallets} onClose={() => setTSheet(null)} onSaved={() => { setTSheet(null); load(); }} onDelete={delTx} />}
+        {sSheet && <SubSheet initial={sSheet.editing || null} onClose={() => setSSheet(null)} onSaved={() => { setSSheet(null); load(); }} onDelete={delSub} />}
+      </React.Fragment>
+    );
+  }
+
   /* ---------- Placeholder for modules not built yet ---------- */
   function ComingSoon({ name, icon, onHome, onBack }) {
     return (
@@ -1873,10 +2471,10 @@
   function Hub({ onOpen }) {
     const mods = [
       { id: 'homework', icon: '📚', name: 'Homework', sub: 'Assignments, exams, grades, schedule', ready: true },
-      { id: 'finances', icon: '💵', name: 'Finances', sub: 'Money, expenses, subscriptions', ready: false },
+      { id: 'finances', icon: '💵', name: 'Finances', sub: 'Money in $ and Bs, expenses, subs', ready: true },
       { id: 'notes', icon: '📝', name: 'Notes', sub: 'Quick notes & lists', ready: true },
-      { id: 'ideas', icon: '💡', name: 'Ideas & Projects', sub: 'Ideas, projects, courses, languages', ready: false },
-      { id: 'health', icon: '❤️', name: 'Health', sub: 'Habits, workouts, water, mood', ready: false },
+      { id: 'ideas', icon: '💡', name: 'Ideas & Projects', sub: 'Ideas, projects, courses, checklists', ready: true },
+      { id: 'health', icon: '❤️', name: 'Health', sub: 'Daily habits & streaks', ready: true },
     ];
     return (
       <React.Fragment>
@@ -1911,9 +2509,9 @@
     const nav = { onBack: back, onHome: home };
     if (screen === 'homework') return <HomeworkApp {...nav} />;
     if (screen === 'notes') return <NotesApp {...nav} />;
-    if (screen === 'finances') return <ComingSoon name="Finances" icon="💵" {...nav} />;
-    if (screen === 'ideas') return <ComingSoon name="Ideas & Projects" icon="💡" {...nav} />;
-    if (screen === 'health') return <ComingSoon name="Health" icon="❤️" {...nav} />;
+    if (screen === 'finances') return <FinanceApp {...nav} />;
+    if (screen === 'ideas') return <IdeasApp {...nav} />;
+    if (screen === 'health') return <HealthApp {...nav} />;
     return <Hub onOpen={go} />;
   }
 
