@@ -2216,6 +2216,63 @@
     if (mode === 'Bs') return par > 0 ? amount / par : 0;
     return amount;
   }
+  /* ---------- Live exchange rates (BCV + paralelo), fetched on-device ---------- */
+  const RATE_SOURCES = [
+    { name: 'DolarAPI', url: 'https://ve.dolarapi.com/v1/dolares',
+      parse: (j) => {
+        if (!Array.isArray(j)) return null;
+        const val = (o) => { if (!o) return null; const n = Number(o.promedio != null ? o.promedio : (o.venta != null ? o.venta : o.compra)); return isFinite(n) && n > 0 ? n : null; };
+        const find = (f) => j.find(x => String(x.fuente || x.nombre || '').toLowerCase().includes(f));
+        return { bcv: val(find('oficial')), par: val(find('paralelo')) };
+      } },
+    { name: 'PyDolarVe', url: 'https://pydolarve.org/api/v1/dollar?page=criptodolar',
+      parse: (j) => {
+        const m = j && j.monitors; if (!m) return null;
+        const val = (o) => { const n = o && Number(o.price); return isFinite(n) && n > 0 ? n : null; };
+        return { bcv: val(m.bcv), par: val(m.enparalelovzla || m.paralelo || m.binance) };
+      } },
+    { name: 'PyDolarVe BCV', url: 'https://pydolarve.org/api/v1/dollar?page=bcv',
+      parse: (j) => {
+        const m = j && j.monitors; if (!m) return null;
+        const val = (o) => { const n = o && Number(o.price); return isFinite(n) && n > 0 ? n : null; };
+        return { bcv: val(m.usd || m.bcv), par: null };
+      } }
+  ];
+  async function fetchFromSource(src, ms) {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), ms);
+    try {
+      const res = await fetch(src.url, { signal: ctrl.signal, cache: 'no-store' });
+      if (!res.ok) return null;
+      const parsed = src.parse(await res.json());
+      if (!parsed || (!parsed.bcv && !parsed.par)) return null;
+      return { bcv: parsed.bcv, par: parsed.par, src: src.name };
+    } catch (e) { return null; }
+    finally { clearTimeout(timer); }
+  }
+  // Try each source until we have both rates; merge partial results if needed.
+  async function fetchRates() {
+    let best = null;
+    for (const s of RATE_SOURCES) {
+      const r = await fetchFromSource(s, 9000);
+      if (!r) continue;
+      if (r.bcv && r.par) return r;
+      best = best ? { bcv: best.bcv || r.bcv, par: best.par || r.par, src: best.src + ' + ' + r.src } : r;
+      if (best.bcv && best.par) return best;
+    }
+    return best;
+  }
+  function rateAge(at) {
+    if (!at) return '';
+    const mins = Math.round((Date.now() - at) / 60000);
+    if (mins < 2) return 'just now';
+    if (mins < 60) return mins + ' min ago';
+    const h = Math.round(mins / 60);
+    if (h < 24) return h + (h === 1 ? ' hour ago' : ' hours ago');
+    const d = Math.round(h / 24);
+    return d + (d === 1 ? ' day ago' : ' days ago');
+  }
+
   function WalletSheet({ initial, onClose, onSaved, onDelete }) {
     const [name, setName] = useState(initial ? initial.name : '');
     const [cur, setCur] = useState(initial ? initial.cur : 'USD');
@@ -2369,6 +2426,10 @@
     const [subs, setSubs] = useState([]);
     const [bcvRate, setBcvRate] = useState(() => localStorage.getItem('fx_bcv') || '');
     const [parRate, setParRate] = useState(() => localStorage.getItem('fx_par') || localStorage.getItem('fx_rate') || '');
+    const [fxMode, setFxMode] = useState(() => localStorage.getItem('fx_mode') || 'auto');
+    const [autoFx, setAutoFx] = useState(() => { try { return JSON.parse(localStorage.getItem('fx_auto') || 'null'); } catch (e) { return null; } });
+    const [fxBusy, setFxBusy] = useState(false);
+    const [fxErr, setFxErr] = useState('');
     const [wSheet, setWSheet] = useState(null);
     const [tSheet, setTSheet] = useState(null);
     const [sSheet, setSSheet] = useState(null);
@@ -2376,8 +2437,33 @@
       setWallets(await allOf('wallets')); setTxs(await allOf('transactions')); setSubs(await allOf('subs'));
     }, []);
     useEffect(() => { openDB().then(d => { db = d; load(); }); }, []);
-    const bcv = parseFloat(String(bcvRate).replace(',', '.')) || 0;
-    const par = parseFloat(String(parRate).replace(',', '.')) || 0;
+    const refreshRates = useCallback(async (silent) => {
+      setFxBusy(true); if (!silent) setFxErr('');
+      const r = await fetchRates();
+      setFxBusy(false);
+      if (!r) {
+        if (!silent) setFxErr('Could not reach the rate services. Check your connection, or switch to Manual and type them yourself.');
+        return;
+      }
+      setAutoFx(prev => {
+        const next = { bcv: r.bcv || (prev && prev.bcv) || null, par: r.par || (prev && prev.par) || null, at: Date.now(), src: r.src };
+        localStorage.setItem('fx_auto', JSON.stringify(next));
+        return next;
+      });
+      setFxErr('');
+    }, []);
+    // refresh automatically when the rates are missing or more than 6 hours old
+    useEffect(() => {
+      if (fxMode !== 'auto') return;
+      if (!autoFx || !autoFx.at || (Date.now() - autoFx.at) > 6 * 3600 * 1000) refreshRates(true);
+    }, [fxMode]);
+    const pickFxMode = (m) => { setFxMode(m); localStorage.setItem('fx_mode', m); setFxErr(''); if (m === 'auto') refreshRates(true); };
+
+    const manBcv = parseFloat(String(bcvRate).replace(',', '.')) || 0;
+    const manPar = parseFloat(String(parRate).replace(',', '.')) || 0;
+    const useAuto = fxMode === 'auto' && autoFx;
+    const bcv = (useAuto && autoFx.bcv) ? autoFx.bcv : manBcv;
+    const par = (useAuto && autoFx.par) ? autoFx.par : manPar;
     const hasPar = par > 0;
     const balOf = (w) => (w.start || 0) + txs.filter(t => t.walletId === w.id)
       .reduce((s, t) => s + walletDelta(t.amount, modeOf(t), w.cur, bcv, par) * (t.kind === 'in' ? 1 : -1), 0);
@@ -2425,20 +2511,44 @@
               </div>
               {combined != null && <p className="fin-combined">≈ {money(combined, 'USD')} total</p>}
               <h3 className="sec-title">Exchange rates (Bs per $1)</h3>
-              <div className="time-row">
-                <div>
-                  <label>Paralelo</label>
-                  <input type="text" inputMode="decimal" value={parRate} onChange={e => setPar(e.target.value)} placeholder="e.g. 45" />
-                </div>
-                <div>
-                  <label>BCV</label>
-                  <input type="text" inputMode="decimal" value={bcvRate} onChange={e => setBcv(e.target.value)} placeholder="e.g. 38" />
-                </div>
+              <div className="daypick">
+                <button type="button" className={'dchip' + (fxMode === 'auto' ? ' on' : '')} onClick={() => pickFxMode('auto')}>Auto · internet</button>
+                <button type="button" className={'dchip' + (fxMode === 'manual' ? ' on' : '')} onClick={() => pickFxMode('manual')}>Manual</button>
               </div>
+              {fxMode === 'auto' ? (
+                <React.Fragment>
+                  <div className="fin-totals">
+                    <div><span className="fin-lab">Paralelo</span><span className="fin-val">{par ? par.toLocaleString(LOC, { maximumFractionDigits: 2 }) : '—'}</span></div>
+                    <div><span className="fin-lab">BCV</span><span className="fin-val">{bcv ? bcv.toLocaleString(LOC, { maximumFractionDigits: 2 }) : '—'}</span></div>
+                  </div>
+                  <p className="field-help">
+                    {fxBusy ? 'Updating…'
+                      : (autoFx && autoFx.at ? ('Updated ' + rateAge(autoFx.at) + (autoFx.src ? ' · ' + autoFx.src : '')) : 'Not updated yet — tap the button below.')}
+                  </p>
+                  {fxErr && <p className="form-err">{fxErr}</p>}
+                  <div className="sched-actions">
+                    <button className="btn ghost wide-one" onClick={() => refreshRates(false)}>{fxBusy ? 'Updating…' : '↻ Update rates now'}</button>
+                  </div>
+                </React.Fragment>
+              ) : (
+                <div className="time-row">
+                  <div>
+                    <label>Paralelo</label>
+                    <input type="text" inputMode="decimal" value={parRate} onChange={e => setPar(e.target.value)} placeholder="e.g. 45" />
+                  </div>
+                  <div>
+                    <label>BCV</label>
+                    <input type="text" inputMode="decimal" value={bcvRate} onChange={e => setBcv(e.target.value)} placeholder="e.g. 38" />
+                  </div>
+                </div>
+              )}
               <p className="field-help">
                 Bolívares are valued at the <b>paralelo</b> rate (what your money is really worth).
                 Prices quoted in $ but charged in Bs use the <b>BCV</b> rate, then convert back at paralelo to show the real cost.
-                Anything marked <b>$ divisas</b> stays in dollars. You type the rates yourself — nothing is fetched online.
+                Anything marked <b>$ divisas</b> stays in dollars.
+                {fxMode === 'auto'
+                  ? ' On Auto the app checks public rate services once every few hours (needs internet); the last values are kept for offline use.'
+                  : ' On Manual you type the rates yourself and nothing is fetched online.'}
               </p>
               <h3 className="sec-title">Wallets</h3>
               {wallets.length === 0

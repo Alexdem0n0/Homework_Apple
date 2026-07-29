@@ -1,5 +1,5 @@
 /* Simple offline cache for the Homework Tracker */
-const CACHE = 'homework-tracker-v26';
+const CACHE = 'homework-tracker-v27';
 const ASSETS = [
   './',
   './index.html',
@@ -25,8 +25,15 @@ self.addEventListener('activate', (e) => {
   );
 });
 
+/* Live data that must never be served from the cache (exchange rates). */
+const LIVE_HOSTS = ['dolarapi.com', 'pydolarve.org', 'exchangedyn.com'];
+
 self.addEventListener('fetch', (e) => {
   if (e.request.method !== 'GET') return;
+  let host = '';
+  try { host = new URL(e.request.url).hostname; } catch (err) { host = ''; }
+  // let rate lookups go straight to the network, always fresh
+  if (LIVE_HOSTS.some((h) => host === h || host.endsWith('.' + h))) return;
   e.respondWith(
     caches.match(e.request).then((cached) =>
       cached ||
