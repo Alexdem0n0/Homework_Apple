@@ -154,6 +154,8 @@
     .fin-sub { font-size: 11.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .fin-amt { flex: 0 0 auto; font-size: 15px; font-family: 'JetBrains Mono', ui-monospace, monospace; }
     .fin-amt.up { color: #5fd08a; } .fin-amt.down { color: #e06666; }
+    .fin-amtwrap { flex: 0 0 auto; display: flex; flex-direction: column; align-items: flex-end; gap: 3px; }
+    .fin-real { font-size: 10.5px; color: var(--faint); font-family: 'JetBrains Mono', ui-monospace, monospace; white-space: nowrap; }
     .ghost { width: 30px; height: 30px; flex: 0 0 auto; animation: floaty 4.5s ease-in-out infinite; }
     .wordmark { line-height: 0.92; font-weight: 700; letter-spacing: 3px; font-size: 15px; }
     .wordmark .ring { display: inline-block; width: 0.6em; height: 0.6em; border: 2px solid currentColor;
@@ -2186,6 +2188,34 @@
   const CUR = ['USD', 'Bs'];
   const CAT = ['Food','Transport','School','Fun','Health','Home','Gift','Other'];
   const money = (n, c) => (c === 'Bs' ? 'Bs ' : '$') + (Math.round(n * 100) / 100).toLocaleString(LOC, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  /* How a price is quoted / paid (Venezuela):
+     Bs  — priced in bolívares      → real cost uses the PARALELO rate
+     USD — priced in $ but charged in Bs at the BCV rate (shops, local services)
+     Div — divisas: you actually pay in dollars (Zelle, cash, card) → no conversion */
+  const MODES = [
+    { id: 'Bs',  label: 'Bs',        help: 'Priced in bolívares — real cost uses the paralelo rate.' },
+    { id: 'USD', label: '$ (BCV)',   help: 'Priced in $ but charged in Bs at the BCV rate.' },
+    { id: 'Div', label: '$ divisas', help: 'You pay in real dollars (Zelle, cash, card) — no conversion.' }
+  ];
+  const modeOf = (o) => o.mode || (o.cur === 'Bs' ? 'Bs' : 'Div');   // back-compat with older entries
+  const modeCur = (m) => (m === 'Bs' ? 'Bs' : 'USD');
+  // What it really costs you in dollars.
+  function realUSD(amount, mode, bcv, par) {
+    if (mode === 'Bs')  return par > 0 ? amount / par : null;
+    if (mode === 'USD') return (bcv > 0 && par > 0) ? (amount * bcv) / par : null;
+    return amount;                                    // Div — already dollars
+  }
+  // How much it moves the wallet it came from, in that wallet's own currency.
+  function walletDelta(amount, mode, walletCur, bcv, par) {
+    if (walletCur === 'Bs') {
+      if (mode === 'Bs')  return amount;
+      if (mode === 'USD') return bcv > 0 ? amount * bcv : 0;
+      return par > 0 ? amount * par : 0;
+    }
+    if (mode === 'Bs') return par > 0 ? amount / par : 0;
+    return amount;
+  }
   function WalletSheet({ initial, onClose, onSaved, onDelete }) {
     const [name, setName] = useState(initial ? initial.name : '');
     const [cur, setCur] = useState(initial ? initial.cur : 'USD');
@@ -2228,7 +2258,7 @@
   function TxSheet({ initial, wallets, onClose, onSaved, onDelete }) {
     const [kind, setKind] = useState(initial ? initial.kind : 'out');   // out | in
     const [amount, setAmount] = useState(initial ? String(initial.amount) : '');
-    const [cur, setCur] = useState(initial ? initial.cur : 'USD');
+    const [mode, setMode] = useState(initial ? modeOf(initial) : 'Bs');
     const [walletId, setWalletId] = useState(initial ? (initial.walletId || '') : (wallets[0] ? wallets[0].id : ''));
     const [cat, setCat] = useState(initial ? (initial.cat || 'Other') : 'Other');
     const [note, setNote] = useState(initial ? (initial.note || '') : '');
@@ -2238,9 +2268,8 @@
     async function save() {
       const a = parseFloat(String(amount).replace(',', '.'));
       if (isNaN(a) || a <= 0) { onClose(); return; }
-      const w = wallets.find(x => x.id === walletId);
       const id = initial ? initial.id : uid();
-      await putIn('transactions', { id, kind, amount: a, cur: w ? w.cur : cur, walletId, cat, note: note.trim(), date,
+      await putIn('transactions', { id, kind, amount: a, mode, cur: modeCur(mode), walletId, cat, note: note.trim(), date,
         createdAt: initial ? initial.createdAt : Date.now() });
       onSaved();
     }
@@ -2259,6 +2288,11 @@
           </div>
           <label>Amount</label>
           <input ref={ref} type="text" inputMode="decimal" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0.00" style={{ fontSize: '26px' }} />
+          <label>Priced in</label>
+          <div className="daypick">
+            {MODES.map(m => <button type="button" key={m.id} className={'dchip' + (mode === m.id ? ' on' : '')} onClick={() => setMode(m.id)}>{m.label}</button>)}
+          </div>
+          <p className="field-help">{(MODES.find(m => m.id === mode) || MODES[0]).help}</p>
           <label>Wallet</label>
           {wallets.length === 0
             ? <p className="field-help">Create a wallet first (Money tab → ＋ Wallet).</p>
@@ -2287,14 +2321,14 @@
   function SubSheet({ initial, onClose, onSaved, onDelete }) {
     const [name, setName] = useState(initial ? initial.name : '');
     const [amount, setAmount] = useState(initial ? String(initial.amount) : '');
-    const [cur, setCur] = useState(initial ? initial.cur : 'USD');
+    const [mode, setMode] = useState(initial ? modeOf(initial) : 'Div');
     const [day, setDay] = useState(initial ? String(initial.day || 1) : '1');
     async function save() {
       const a = parseFloat(String(amount).replace(',', '.'));
       if (!name.trim() || isNaN(a)) { onClose(); return; }
       let d = parseInt(day, 10); if (isNaN(d) || d < 1) d = 1; if (d > 31) d = 31;
       const id = initial ? initial.id : uid();
-      await putIn('subs', { id, name: name.trim(), amount: a, cur, day: d, createdAt: initial ? initial.createdAt : Date.now() });
+      await putIn('subs', { id, name: name.trim(), amount: a, mode, cur: modeCur(mode), day: d, createdAt: initial ? initial.createdAt : Date.now() });
       onSaved();
     }
     return (
@@ -2310,10 +2344,11 @@
           <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Netflix · Spotify" autoComplete="off" />
           <label>Amount per month</label>
           <input type="text" inputMode="decimal" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0.00" />
-          <label>Currency</label>
+          <label>Priced in</label>
           <div className="daypick">
-            {CUR.map(c => <button type="button" key={c} className={'dchip' + (cur === c ? ' on' : '')} onClick={() => setCur(c)}>{c}</button>)}
+            {MODES.map(m => <button type="button" key={m.id} className={'dchip' + (mode === m.id ? ' on' : '')} onClick={() => setMode(m.id)}>{m.label}</button>)}
           </div>
+          <p className="field-help">{(MODES.find(m => m.id === mode) || MODES[0]).help}</p>
           <label>Charges on day</label>
           <input type="text" inputMode="numeric" value={day} onChange={e => setDay(e.target.value)} placeholder="1–31" />
           {initial && <div className="sheet-actions"><button className="btn danger wide-one" onClick={() => onDelete(initial)}>Delete subscription</button></div>}
@@ -2332,7 +2367,8 @@
     const [wallets, setWallets] = useState([]);
     const [txs, setTxs] = useState([]);
     const [subs, setSubs] = useState([]);
-    const [rate, setRate] = useState(() => localStorage.getItem('fx_rate') || '');
+    const [bcvRate, setBcvRate] = useState(() => localStorage.getItem('fx_bcv') || '');
+    const [parRate, setParRate] = useState(() => localStorage.getItem('fx_par') || localStorage.getItem('fx_rate') || '');
     const [wSheet, setWSheet] = useState(null);
     const [tSheet, setTSheet] = useState(null);
     const [sSheet, setSSheet] = useState(null);
@@ -2340,20 +2376,30 @@
       setWallets(await allOf('wallets')); setTxs(await allOf('transactions')); setSubs(await allOf('subs'));
     }, []);
     useEffect(() => { openDB().then(d => { db = d; load(); }); }, []);
-    const fx = parseFloat(String(rate).replace(',', '.'));
-    const hasFx = !isNaN(fx) && fx > 0;
+    const bcv = parseFloat(String(bcvRate).replace(',', '.')) || 0;
+    const par = parseFloat(String(parRate).replace(',', '.')) || 0;
+    const hasPar = par > 0;
     const balOf = (w) => (w.start || 0) + txs.filter(t => t.walletId === w.id)
-      .reduce((s, t) => s + (t.kind === 'in' ? t.amount : -t.amount), 0);
+      .reduce((s, t) => s + walletDelta(t.amount, modeOf(t), w.cur, bcv, par) * (t.kind === 'in' ? 1 : -1), 0);
     const totalUSD = wallets.filter(w => w.cur === 'USD').reduce((s, w) => s + balOf(w), 0);
     const totalBs = wallets.filter(w => w.cur === 'Bs').reduce((s, w) => s + balOf(w), 0);
-    const combined = hasFx ? totalUSD + totalBs / fx : null;
+    const combined = hasPar ? totalUSD + totalBs / par : null;
     const monthTx = txs.filter(t => (t.date || '').slice(0, 7) === todayIsoStr().slice(0, 7));
-    const inUSD = (t) => t.cur === 'Bs' ? (hasFx ? t.amount / fx : 0) : t.amount;
-    const spentMonth = monthTx.filter(t => t.kind === 'out').reduce((s, t) => s + inUSD(t), 0);
-    const gotMonth = monthTx.filter(t => t.kind === 'in').reduce((s, t) => s + inUSD(t), 0);
-    const subsMonthUSD = subs.reduce((s, x) => s + (x.cur === 'Bs' ? (hasFx ? x.amount / fx : 0) : x.amount), 0);
+    const rUSD = (o) => realUSD(o.amount, modeOf(o), bcv, par);        // what it really costs in $
+    const spentMonth = monthTx.filter(t => t.kind === 'out').reduce((s, t) => s + (rUSD(t) || 0), 0);
+    const gotMonth = monthTx.filter(t => t.kind === 'in').reduce((s, t) => s + (rUSD(t) || 0), 0);
+    const subsMonthUSD = subs.reduce((s, x) => s + (rUSD(x) || 0), 0);
     const wname = (id) => (wallets.find(w => w.id === id) || {}).name || '—';
-    const setFx = (v) => { setRate(v); if (v.trim()) localStorage.setItem('fx_rate', v); else localStorage.removeItem('fx_rate'); };
+    const setBcv = (v) => { setBcvRate(v); if (v.trim()) localStorage.setItem('fx_bcv', v); else localStorage.removeItem('fx_bcv'); };
+    const setPar = (v) => { setParRate(v); if (v.trim()) localStorage.setItem('fx_par', v); else localStorage.removeItem('fx_par'); };
+    // "≈ $x" line shown under an amount, only when the needed rate exists
+    const realLine = (o) => {
+      const m = modeOf(o);
+      if (m === 'Div') return null;
+      const r = rUSD(o);
+      if (r == null) return m === 'Bs' ? 'set the paralelo rate' : 'set both rates';
+      return '≈ ' + money(r, 'USD') + ' real';
+    };
     async function delWallet(w) {
       if (!confirm('Delete this wallet? Its entries stay but lose their wallet.')) return;
       await delFrom('wallets', w.id); setWSheet(null); load();
@@ -2378,9 +2424,22 @@
                 <div><span className="fin-lab">Bolívares</span><span className="fin-val">{money(totalBs, 'Bs')}</span></div>
               </div>
               {combined != null && <p className="fin-combined">≈ {money(combined, 'USD')} total</p>}
-              <label>Exchange rate (Bs per $1)</label>
-              <input type="text" inputMode="decimal" value={rate} onChange={e => setFx(e.target.value)} placeholder="e.g. 40" />
-              <p className="field-help">Your own rate — used only to show a combined total. Nothing is fetched online.</p>
+              <h3 className="sec-title">Exchange rates (Bs per $1)</h3>
+              <div className="time-row">
+                <div>
+                  <label>Paralelo</label>
+                  <input type="text" inputMode="decimal" value={parRate} onChange={e => setPar(e.target.value)} placeholder="e.g. 45" />
+                </div>
+                <div>
+                  <label>BCV</label>
+                  <input type="text" inputMode="decimal" value={bcvRate} onChange={e => setBcv(e.target.value)} placeholder="e.g. 38" />
+                </div>
+              </div>
+              <p className="field-help">
+                Bolívares are valued at the <b>paralelo</b> rate (what your money is really worth).
+                Prices quoted in $ but charged in Bs use the <b>BCV</b> rate, then convert back at paralelo to show the real cost.
+                Anything marked <b>$ divisas</b> stays in dollars. You type the rates yourself — nothing is fetched online.
+              </p>
               <h3 className="sec-title">Wallets</h3>
               {wallets.length === 0
                 ? <div className="day-empty">No wallets yet — tap ＋ to add cash, Zelle, bank…</div>
@@ -2408,7 +2467,10 @@
                         <span className="fin-name">{t.note || t.cat}</span>
                         <span className="fin-sub">{t.cat} · {wname(t.walletId)} · {fmtDate(t.date)}</span>
                       </div>
-                      <span className={'fin-amt ' + (t.kind === 'in' ? 'up' : 'down')}>{(t.kind === 'in' ? '+' : '−') + money(t.amount, t.cur).replace('-', '')}</span>
+                      <span className="fin-amtwrap">
+                        <span className={'fin-amt ' + (t.kind === 'in' ? 'up' : 'down')}>{(t.kind === 'in' ? '+' : '−') + money(t.amount, modeCur(modeOf(t))).replace('-', '')}</span>
+                        {realLine(t) && <span className="fin-real">{realLine(t)}</span>}
+                      </span>
                     </div>)}
             </React.Fragment>
           ) : (
@@ -2428,7 +2490,10 @@
                         <span className="fin-name">{s.name}</span>
                         <span className="fin-sub">Day {s.day} of each month</span>
                       </div>
-                      <span className="fin-amt">{money(s.amount, s.cur)}</span>
+                      <span className="fin-amtwrap">
+                        <span className="fin-amt">{money(s.amount, modeCur(modeOf(s)))}</span>
+                        {realLine(s) && <span className="fin-real">{realLine(s)}</span>}
+                      </span>
                     </div>)}
             </React.Fragment>
           )}
