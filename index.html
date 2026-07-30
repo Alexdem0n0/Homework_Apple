@@ -2262,6 +2262,36 @@
     }
     return best;
   }
+  /* Tiny safe calculator — digits and + - * / ( ) only, no eval. */
+  function calcEval(str) {
+    const s = String(str || '').replace(/,/g, '.').replace(/\s+/g, '');
+    if (!s || !/^[0-9+\-*/().]+$/.test(s)) return null;
+    let i = 0;
+    const peek = () => s[i];
+    function factor() {
+      if (peek() === '+') { i++; return factor(); }
+      if (peek() === '-') { i++; return -factor(); }
+      if (peek() === '(') { i++; const v = expr(); if (peek() === ')') i++; return v; }
+      const start = i;
+      while (i < s.length && /[0-9.]/.test(s[i])) i++;
+      const n = parseFloat(s.slice(start, i));
+      return isNaN(n) ? NaN : n;
+    }
+    function term() {
+      let v = factor();
+      while (peek() === '*' || peek() === '/') { const op = s[i++]; const r = factor(); v = op === '*' ? v * r : (r === 0 ? NaN : v / r); }
+      return v;
+    }
+    function expr() {
+      let v = term();
+      while (peek() === '+' || peek() === '-') { const op = s[i++]; const r = term(); v = op === '+' ? v + r : v - r; }
+      return v;
+    }
+    const val = expr();
+    if (i < s.length) return null;
+    return isFinite(val) ? val : null;
+  }
+
   function rateAge(at) {
     if (!at) return '';
     const mins = Math.round((Date.now() - at) / 60000);
@@ -2430,6 +2460,8 @@
     const [autoFx, setAutoFx] = useState(() => { try { return JSON.parse(localStorage.getItem('fx_auto') || 'null'); } catch (e) { return null; } });
     const [fxBusy, setFxBusy] = useState(false);
     const [fxErr, setFxErr] = useState('');
+    const [calcVal, setCalcVal] = useState('');
+    const [calcCur, setCalcCur] = useState('Bs');
     const [wSheet, setWSheet] = useState(null);
     const [tSheet, setTSheet] = useState(null);
     const [sSheet, setSSheet] = useState(null);
@@ -2478,13 +2510,20 @@
     const wname = (id) => (wallets.find(w => w.id === id) || {}).name || '—';
     const setBcv = (v) => { setBcvRate(v); if (v.trim()) localStorage.setItem('fx_bcv', v); else localStorage.removeItem('fx_bcv'); };
     const setPar = (v) => { setParRate(v); if (v.trim()) localStorage.setItem('fx_par', v); else localStorage.removeItem('fx_par'); };
-    // "≈ $x" line shown under an amount, only when the needed rate exists
-    const realLine = (o) => {
-      const m = modeOf(o);
-      if (m === 'Div') return null;
-      const r = rUSD(o);
-      if (r == null) return m === 'Bs' ? 'set the paralelo rate' : 'set both rates';
-      return '≈ ' + money(r, 'USD') + ' real';
+    // The same amount shown in the other currency, under each entry.
+    const convLine = (o) => {
+      const m = modeOf(o), a = o.amount;
+      if (m === 'Bs') {                                   // typed in Bs → show dollars
+        if (!par) return 'set the paralelo rate';
+        return '≈ ' + money(a / par, 'USD');
+      }
+      if (m === 'USD') {                                  // priced in $, charged in Bs at BCV
+        if (!bcv) return 'set the BCV rate';
+        const bs = a * bcv;
+        return '= ' + money(bs, 'Bs') + (par ? ' · real ' + money(bs / par, 'USD') : '');
+      }
+      if (!par) return null;                              // divisas → what it's worth in Bs
+      return '≈ ' + money(a * par, 'Bs');
     };
     async function delWallet(w) {
       if (!confirm('Delete this wallet? Its entries stay but lose their wallet.')) return;
@@ -2492,6 +2531,7 @@
     }
     async function delTx(t) { if (!confirm('Delete this entry?')) return; await delFrom('transactions', t.id); setTSheet(null); load(); }
     async function delSub(s) { if (!confirm('Delete this subscription?')) return; await delFrom('subs', s.id); setSSheet(null); load(); }
+    const calcNum = calcEval(calcVal);
     const logView = txs.slice().sort((a, b) => (b.date || '').localeCompare(a.date || '') || (b.createdAt || 0) - (a.createdAt || 0));
     return (
       <React.Fragment>
@@ -2500,6 +2540,7 @@
             <button className={tab === 'money' ? 'active' : ''} onClick={() => setTab('money')}>Money</button>
             <button className={tab === 'log' ? 'active' : ''} onClick={() => setTab('log')}>Log</button>
             <button className={tab === 'subs' ? 'active' : ''} onClick={() => setTab('subs')}>Subs</button>
+            <button className={tab === 'calc' ? 'active' : ''} onClick={() => setTab('calc')}>Calc</button>
           </div>
         </ModHeader>
         <main>
@@ -2579,11 +2620,11 @@
                       </div>
                       <span className="fin-amtwrap">
                         <span className={'fin-amt ' + (t.kind === 'in' ? 'up' : 'down')}>{(t.kind === 'in' ? '+' : '−') + money(t.amount, modeCur(modeOf(t))).replace('-', '')}</span>
-                        {realLine(t) && <span className="fin-real">{realLine(t)}</span>}
+                        {convLine(t) && <span className="fin-real">{convLine(t)}</span>}
                       </span>
                     </div>)}
             </React.Fragment>
-          ) : (
+          ) : tab === 'subs' ? (
             <React.Fragment>
               <div className="fin-totals">
                 <div><span className="fin-lab">Per month</span><span className="fin-val">{money(subsMonthUSD, 'USD')}</span></div>
@@ -2602,13 +2643,54 @@
                       </div>
                       <span className="fin-amtwrap">
                         <span className="fin-amt">{money(s.amount, modeCur(modeOf(s)))}</span>
-                        {realLine(s) && <span className="fin-real">{realLine(s)}</span>}
+                        {convLine(s) && <span className="fin-real">{convLine(s)}</span>}
                       </span>
                     </div>)}
             </React.Fragment>
+          ) : (
+            <React.Fragment>
+              <label>Amount</label>
+              <input type="text" inputMode="decimal" value={calcVal} onChange={e => setCalcVal(e.target.value)}
+                placeholder="e.g. 1200   ·   350*3" style={{ fontSize: '26px' }} />
+              <p className="field-help">You can type simple math too: + − * / and ( ).</p>
+              <label>This amount is in</label>
+              <div className="daypick">
+                <button type="button" className={'dchip' + (calcCur === 'Bs' ? ' on' : '')} onClick={() => setCalcCur('Bs')}>Bolívares</button>
+                <button type="button" className={'dchip' + (calcCur === 'USD' ? ' on' : '')} onClick={() => setCalcCur('USD')}>Dollars</button>
+              </div>
+              {calcNum == null
+                ? <div className="day-empty">{calcVal.trim() ? 'That is not a valid amount.' : 'Type an amount to convert.'}</div>
+                : calcCur === 'Bs' ? (
+                  <React.Fragment>
+                    <h3 className="sec-title">{money(calcNum, 'Bs')} is…</h3>
+                    <div className="card fin-row"><div className="fin-left">
+                      <span className="fin-name">{par ? money(calcNum / par, 'USD') : '—'}</span>
+                      <span className="fin-sub">at paralelo — what it's really worth</span></div></div>
+                    <div className="card fin-row"><div className="fin-left">
+                      <span className="fin-name">{bcv ? money(calcNum / bcv, 'USD') : '—'}</span>
+                      <span className="fin-sub">at BCV — the official rate</span></div></div>
+                  </React.Fragment>
+                ) : (
+                  <React.Fragment>
+                    <h3 className="sec-title">{money(calcNum, 'USD')} is…</h3>
+                    <div className="card fin-row"><div className="fin-left">
+                      <span className="fin-name">{bcv ? money(calcNum * bcv, 'Bs') : '—'}</span>
+                      <span className="fin-sub">at BCV — what a shop charges you in Bs</span></div></div>
+                    <div className="card fin-row"><div className="fin-left">
+                      <span className="fin-name">{par ? money(calcNum * par, 'Bs') : '—'}</span>
+                      <span className="fin-sub">at paralelo — what it costs you to buy those Bs</span></div></div>
+                    {bcv > 0 && par > 0 &&
+                      <div className="card fin-row"><div className="fin-left">
+                        <span className="fin-name">{money(calcNum * bcv / par, 'USD')}</span>
+                        <span className="fin-sub">real cost if you pay it in Bs at the BCV rate</span></div></div>}
+                  </React.Fragment>
+                )}
+              {(!par || !bcv) && <p className="field-help">Set both rates in the Money tab to see every conversion.</p>}
+            </React.Fragment>
           )}
         </main>
-        <button className="add" onClick={() => { if (tab === 'subs') setSSheet({}); else if (tab === 'money') setWSheet({}); else setTSheet({}); }} aria-label="Add">＋</button>
+        {tab !== 'calc' &&
+          <button className="add" onClick={() => { if (tab === 'subs') setSSheet({}); else if (tab === 'money') setWSheet({}); else setTSheet({}); }} aria-label="Add">＋</button>}
         {wSheet && <WalletSheet initial={wSheet.editing || null} onClose={() => setWSheet(null)} onSaved={() => { setWSheet(null); load(); }} onDelete={delWallet} />}
         {tSheet && <TxSheet initial={tSheet.editing || null} wallets={wallets} onClose={() => setTSheet(null)} onSaved={() => { setTSheet(null); load(); }} onDelete={delTx} />}
         {sSheet && <SubSheet initial={sSheet.editing || null} onClose={() => setSSheet(null)} onSaved={() => { setSSheet(null); load(); }} onDelete={delSub} />}
