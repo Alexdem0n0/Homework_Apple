@@ -14,10 +14,10 @@
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
   <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
 
-  <!-- Fonts (match phant0msecure: clean grotesque + mono accents) -->
+  <!-- Serif for reading (titles, notes, prose), grotesque for small UI labels, mono for numbers -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Tinos:ital,wght@0,400;0,700;1,400&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
 
   <style>
     :root {
@@ -45,6 +45,9 @@
       --glass-line: rgba(255,255,255,0.14);
       --glass-blur: blur(22px) saturate(170%);
       --glass-sheen: inset 0 1px 0 rgba(255,255,255,0.22);
+      --font-serif: 'Tinos', 'Times New Roman', Times, serif;
+      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-mono: 'JetBrains Mono', ui-monospace, monospace;
       --r-card: 18px;
       --r-tile: 22px;
       --r-pill: 100px;
@@ -63,11 +66,20 @@
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     html, body { margin: 0; padding: 0; min-height: 100%; }
     body {
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-family: var(--font-serif);
       background: var(--bg); color: var(--text);
       -webkit-font-smoothing: antialiased; overflow-x: hidden;
     }
-    .mono { font-family: 'JetBrains Mono', ui-monospace, monospace; }
+    .mono { font-family: var(--font-mono); }
+
+    /* Small uppercase interface chrome stays in the grotesque -- a serif at 9-11px
+       with 2px letter-spacing is hard to read and looks like a mistake. */
+    label, .eyebrow, .tag, .due, .kind-tag, .grade-tag, .soon-tag, .glabel,
+    .viewtabs button, .filters button, .schip, .schip2, .dchip, .btn, .link,
+    .empty p, .stitle, .corte-name, .wlab, .np-edit, .grade-kind, .corte-chip,
+    .wtoggle, .chip, .file-btn, .sched-note, .caption, .wordmark, .np-head .stitle {
+      font-family: var(--font-sans);
+    }
 
     /* ---------- Background: grid + subtle static glow (no animation = smoother) ---------- */
     /* Static blue washes. Glass has nothing to refract on a flat dark page, so
@@ -149,8 +161,8 @@
       padding: 18px 16px; cursor: pointer; min-height: 122px; color: var(--text); font-family: inherit; transition: transform .15s, border-color .2s; }
     .hub-card:active { transform: scale(.97); border-color: var(--line-strong); }
     .hub-ic { font-size: 27px; line-height: 1; }
-    .hub-name { font-size: 15px; font-weight: 600; letter-spacing: .2px; margin-top: 4px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-    .hub-sub { font-size: 11.5px; color: var(--muted); line-height: 1.45; }
+    .hub-name { font-size: 16.5px; font-weight: 600; letter-spacing: 0; margin-top: 4px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .hub-sub { font-size: 12.5px; color: var(--muted); line-height: 1.45; }
     .hub-card.soon { opacity: .7; }
     .soon-tag { font-size: 8px; letter-spacing: 1px; text-transform: uppercase; color: var(--faint); border: 1px solid var(--line); padding: 2px 5px; }
 
@@ -253,9 +265,9 @@
     .check svg { width: 14px; height: 14px; stroke: var(--accent-ink); opacity: 0; transition: opacity .2s; }
     .hw.done .check svg { opacity: 1; }
     .body { flex: 1 1 auto; min-width: 0; }
-    .title { font-size: 16.5px; font-weight: 500; margin: 0 0 4px; letter-spacing: -0.2px; word-break: break-word; }
+    .title { font-size: 18px; font-weight: 600; margin: 0 0 4px; letter-spacing: 0; word-break: break-word; }
     .hw.done .title { color: var(--muted); text-decoration: line-through; }
-    .subtitle { margin: 0 0 6px; font-size: 13px; color: var(--muted); letter-spacing: 0.2px; }
+    .subtitle { margin: 0 0 6px; font-size: 14px; color: var(--muted); letter-spacing: 0.1px; }
     .hw.done .subtitle { color: var(--faint); }
     .meta { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 2px; }
     .tag { font-size: 10.5px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--dim); border: 1px solid var(--line); padding: 3px 9px; border-radius: var(--r-pill); }
@@ -263,7 +275,7 @@
       border: 1px solid rgba(127,163,212,0.35); color: var(--accent); }
     .due.overdue { color: var(--overdue); border-color: rgba(196,112,122,0.45); }
     .due.soon { color: var(--soon); border-color: rgba(200,154,106,0.4); }
-    .notes { font-size: 14px; color: rgba(255,255,255,0.62); margin: 10px 0 0; white-space: pre-wrap; word-break: break-word; line-height: 1.5; }
+    .notes { font-size: 15.5px; color: rgba(255,255,255,0.68); margin: 10px 0 0; white-space: pre-wrap; word-break: break-word; line-height: 1.55; }
     .attachments { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
     .thumb { width: 64px; height: 64px; object-fit: cover; border: 1px solid var(--line); border-radius: 12px; }
     .att { display: flex; align-items: center; gap: 7px; text-decoration: none; border: 1px solid var(--line); border-radius: var(--r-pill);
