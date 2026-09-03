@@ -1,5 +1,5 @@
 /* Simple offline cache for the Homework Tracker */
-const CACHE = 'homework-tracker-v35';
+const CACHE = 'homework-tracker-v36';
 const ASSETS = [
   './',
   './index.html',
