@@ -458,7 +458,31 @@
     .grade-in { flex: 0 0 auto; width: 58px; text-align: center; background: transparent; border: 1px solid var(--line-strong); color: var(--text);
       font-size: 16px; font-family: inherit; padding: 8px 4px; outline: none; }
     .grade-in:focus { border-color: #5fd08a; }
-    .grade-slash { flex: 0 0 auto; font-size: 12px; color: var(--faint); }
+    .grade-slash { flex: 0 0 auto; font-size: 13px; color: var(--faint); }
+    .grade-in.max-in { width: 46px; font-size: 14px; color: var(--muted); border-style: dashed; }
+    .grade-locked { font-size: 11.5px; color: var(--faint); margin: -4px 0 12px; }
+    .corte-block { margin-bottom: 16px; }
+    .corte-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; padding: 0 2px 6px; }
+    .corte-name { font-size: 11px; letter-spacing: 1.4px; text-transform: uppercase; color: var(--muted); }
+    .corte-name em { font-style: normal; color: var(--faint); letter-spacing: .5px; }
+    .corte-score { font-size: 12px; color: var(--muted); font-family: 'JetBrains Mono', ui-monospace, monospace; flex: 0 0 auto; }
+    .corte-score em { font-style: normal; color: var(--faint); font-size: 10.5px; }
+    .corte-chip { flex: 0 0 auto; background: transparent; border: 1px solid var(--line-strong); color: var(--muted); font-family: inherit;
+      font-size: 10.5px; letter-spacing: .5px; padding: 4px 6px; cursor: pointer; }
+    .corte-chip:active { background: rgba(255,255,255,0.08); color: var(--text); }
+    .day-empty.small { font-size: 12px; padding: 10px 12px; }
+    .wtoggle { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 16px;
+      background: var(--panel-lit); border: 1px solid var(--line); color: var(--muted); font-family: inherit; font-size: 12px;
+      letter-spacing: .6px; padding: 12px 14px; cursor: pointer; }
+    .wcaret { color: var(--faint); }
+    .wpanel { border: 1px solid var(--line); border-top: none; background: var(--panel-lit); padding: 12px 14px 14px; }
+    .wrow { display: flex; gap: 10px; margin: 10px 0 4px; }
+    .wcell { flex: 1; display: flex; align-items: center; gap: 4px; }
+    .wlab { font-size: 10.5px; letter-spacing: .8px; text-transform: uppercase; color: var(--faint); flex: 1; }
+    .grade-in.wnum { width: 48px; font-size: 15px; padding: 6px 2px; }
+    .wpct { font-size: 12px; color: var(--faint); }
+    .wwarn { font-size: 11.5px; color: #e0a44b; margin: 8px 0 0; }
+    .wreset { margin-top: 12px; width: 100%; }
     .grades-actions { margin-top: 30px; }
     .grades-actions .btn { width: 100%; }
 
@@ -534,6 +558,49 @@
 
   const LOC = 'en-US';
   const GRADE_MAX = 20; // Venezuela 0–20 scale
+  const CORTES = [1, 2, 3];
+  const DEFAULT_CORTE_W = [15, 35, 55];                     // % each corte is worth
+  const maxOf = (o) => { const m = Number(o.max); return isFinite(m) && m > 0 ? m : GRADE_MAX; };
+  const corteOf = (o) => { const c = Number(o.corte); return (c === 2 || c === 3) ? c : 1; };
+  const gradeNum = (g) => { if (g === '' || g == null) return null; const n = parseFloat(String(g).replace(',', '.')); return isNaN(n) ? null : n; };
+
+  /* How much each corte is worth. Editable, remembered on this phone. */
+  function loadCorteW() {
+    try {
+      const raw = JSON.parse(localStorage.getItem('corte_w') || 'null');
+      if (Array.isArray(raw) && raw.length === 3 && raw.every(n => isFinite(n) && n >= 0)) return raw.map(Number);
+    } catch (e) {}
+    return DEFAULT_CORTE_W.slice();
+  }
+  const saveCorteW = (w) => { try { localStorage.setItem('corte_w', JSON.stringify(w)); } catch (e) {} };
+
+  /* One corte's score on the 0–20 scale: all the points you earned in it
+     divided by all the points that were on the table, then scaled to 20. */
+  function corteScore(list) {
+    let got = 0, poss = 0, n = 0;
+    for (const it of (list || [])) {
+      const g = gradeNum(it.grade);
+      if (g === null) continue;
+      got += g; poss += maxOf(it); n++;
+    }
+    if (!n || poss <= 0) return null;
+    return { score: (got / poss) * GRADE_MAX, got, poss, n };
+  }
+
+  /* A class, corte by corte. `current` renormalises over the cortes you have
+     grades in, so an unfinished semester is not dragged down by empty ones.
+     `locked` is how many of the final 20 points are already banked. */
+  function classGrade(list, weights) {
+    const per = CORTES.map(c => corteScore((list || []).filter(it => corteOf(it) === c)));
+    let wSum = 0, wScore = 0, locked = 0;
+    per.forEach((p, i) => {
+      const w = Number(weights[i]) || 0;
+      if (!p) return;
+      wSum += w; wScore += p.score * w;
+      locked += p.score * w / 100;
+    });
+    return { per, current: wSum > 0 ? wScore / wSum : null, locked, weighted: wSum };
+  }
 
   /* ---------- IndexedDB ---------- */
   const DB_NAME = 'homework-tracker', DB_VER = 5;
@@ -743,6 +810,8 @@
     const [dueDate, setDueDate] = useState(initial ? initial.dueDate : (prefillDate || ''));
     const [notes, setNotes] = useState(initial ? initial.notes : '');
     const [color, setColor] = useState(initial ? (initial.color || '') : '');
+    const [corte, setCorte] = useState(initial ? corteOf(initial) : 1);
+    const [maxPts, setMaxPts] = useState(initial ? String(maxOf(initial)) : String(GRADE_MAX));
     const [subtasks, setSubtasks] = useState(initial && initial.subtasks ? initial.subtasks.map(s => ({ ...s })) : []);
     const [staged, setStaged] = useState([]);
     const [err, setErr] = useState(false);
@@ -819,7 +888,9 @@
       if (!ttl && !subj) { setErr(true); titleRef.current && titleRef.current.focus(); return; }
       const id = initial ? initial.id : uid();
       const cleanSubs = subtasks.filter(s => s.text.trim()).map(s => ({ id: s.id, text: s.text.trim(), done: !!s.done }));
+      const mp = parseFloat(String(maxPts).replace(',', '.'));
       const hw = { id, kind, title: ttl, subject: subj, classNo: initial ? (initial.classNo || '') : '',
+        corte, max: (isFinite(mp) && mp > 0) ? mp : GRADE_MAX,
         className: className.trim(), dueDate, notes: notes.trim(), color, subtasks: cleanSubs,
         grade: initial ? (initial.grade || '') : '', archived: initial ? (initial.archived || false) : false,
         done: initial ? initial.done : false, createdAt: initial ? initial.createdAt : Date.now() };
@@ -877,6 +948,15 @@
 
           <label>{isExam ? 'Exam date' : 'Due / finish by'}</label>
           <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} />
+
+          <label>Corte</label>
+          <div className="daypick">
+            {CORTES.map(n => <button type="button" key={n} className={'dchip' + (corte === n ? ' on' : '')} onClick={() => setCorte(n)}>Corte {n}</button>)}
+          </div>
+
+          <label>Graded out of</label>
+          <input type="text" inputMode="decimal" value={maxPts} onChange={e => setMaxPts(e.target.value)} placeholder="20" />
+          <p className="field-help">How many points this is worth — put 15 if it's graded 14/15, 20 if it's out of 20.</p>
 
           <label>{isExam ? 'Topics / checklist' : 'Subtasks'}</label>
           {subtasks.map(st =>
@@ -1012,7 +1092,7 @@
               {isExam && <span className="kind-tag exam">Exam</span>}
               {item.className && <span className="tag">{item.className}</span>}
               <span className={'due ' + di.cls}>{di.label}</span>
-              {item.grade !== '' && item.grade != null && <span className="grade-tag">{item.grade} / {GRADE_MAX}</span>}
+              {item.grade !== '' && item.grade != null && <span className="grade-tag">{item.grade} / {maxOf(item)}</span>}
               {subs.length > 0 && <span className="tag">{subsDone}/{subs.length} done</span>}
               {imgCount > 0 && <span className="tag">📷 {imgCount}</span>}
               {fileCount > 0 && <span className="tag">📎 {fileCount}</span>}
@@ -1053,7 +1133,8 @@
             {item.className && <span className="tag">{item.className}</span>}
             {item.classNo && <span className="tag">{item.classNo}</span>}
             <span className={'due ' + di.cls}>{di.label}</span>
-            {item.grade !== '' && item.grade != null && <span className="grade-tag">{item.grade} / {GRADE_MAX}</span>}
+            <span className="tag">Corte {corteOf(item)}</span>
+            {item.grade !== '' && item.grade != null && <span className="grade-tag">{item.grade} / {maxOf(item)}</span>}
           </div>
           {subs.length > 0 &&
             <div className="subtasks">
@@ -1470,66 +1551,116 @@
     (document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve()).then(draw);
   }
 
-  /* ---------- A single 0–20 grade box that saves on blur ---------- */
-  function GradeInput({ item, onCommit }) {
-    const initV = item.grade == null ? '' : String(item.grade);
-    const [v, setV] = useState(initV);
-    useEffect(() => { setV(item.grade == null ? '' : String(item.grade)); }, [item.grade]);
+  /* ---------- A little number box that saves when you tap away ---------- */
+  function NumCell({ value, onCommit, placeholder, label, cls, min, max, allowEmpty }) {
+    const asStr = (x) => (x === null || x === undefined || x === '') ? '' : String(x);
+    const [v, setV] = useState(asStr(value));
+    useEffect(() => { setV(asStr(value)); }, [value]);
     const commit = () => {
       let s = v.trim().replace(',', '.');
       if (s !== '') {
         let n = parseFloat(s);
-        if (isNaN(n)) s = ''; else { n = Math.max(0, Math.min(GRADE_MAX, n)); s = String(Math.round(n * 100) / 100); }
+        if (isNaN(n)) s = '';
+        else {
+          if (min != null) n = Math.max(min, n);
+          if (max != null) n = Math.min(max, n);
+          s = String(Math.round(n * 100) / 100);
+        }
       }
-      if (s !== (item.grade == null ? '' : String(item.grade))) onCommit(item, s);
+      if (s === '' && !allowEmpty) { setV(asStr(value)); return; }
+      if (s !== asStr(value)) onCommit(s);
       setV(s);
     };
-    return <input className="grade-in" type="text" inputMode="decimal" value={v}
-      onChange={e => setV(e.target.value)} onBlur={commit} placeholder="—" aria-label="Grade" />;
+    return <input className={'grade-in' + (cls ? ' ' + cls : '')} type="text" inputMode="decimal" value={v}
+      onChange={e => setV(e.target.value)} onBlur={commit} placeholder={placeholder || '—'} aria-label={label} />;
   }
 
-  /* ---------- Grades view (only for classes you created; 0–20 scale) ---------- */
-  function Grades({ items, classes, onSetGrade, onEditItem }) {
+  /* ---------- Grades view: three cortes, each worth a slice of the final ---------- */
+  function Grades({ items, classes, onPatch, onEditItem }) {
+    const [weights, setWeights] = useState(loadCorteW);
+    const [showW, setShowW] = useState(false);
+    const setW = (i, val) => {
+      const n = parseFloat(String(val).replace(',', '.'));
+      const next = weights.slice();
+      next[i] = isNaN(n) ? 0 : Math.max(0, Math.min(100, n));
+      setWeights(next); saveCorteW(next);
+    };
+    const wTotal = weights.reduce((a, b) => a + (Number(b) || 0), 0);
+
     const subjects = []; const seen = new Set();
     for (const c of classes) { const k = (c.subject || '').trim().toLowerCase(); if (k && !seen.has(k)) { seen.add(k); subjects.push({ key: k, subject: c.subject.trim(), color: c.color || '' }); } }
     const bySubj = {};
     for (const it of items) { const k = (it.subject || '').trim().toLowerCase(); if (seen.has(k)) (bySubj[k] = bySubj[k] || []).push(it); }
-    const num = (g) => { if (g === '' || g == null) return null; const n = parseFloat(String(g)); return isNaN(n) ? null : n; };
-    const avgOf = (list) => { const gs = (list || []).map(x => num(x.grade)).filter(n => n !== null); if (!gs.length) return null; return gs.reduce((a, b) => a + b, 0) / gs.length; };
-    const subjAvgs = subjects.map(s => avgOf(bySubj[s.key])).filter(a => a !== null);
-    const overall = subjAvgs.length ? (subjAvgs.reduce((a, b) => a + b, 0) / subjAvgs.length) : null;
-    const widgetRows = subjects.map(s => { const list = bySubj[s.key] || []; return { subject: s.subject, color: s.color, avg: avgOf(list), count: list.filter(x => num(x.grade) !== null).length }; });
+
+    const results = subjects.map(s => ({ ...s, list: bySubj[s.key] || [], g: classGrade(bySubj[s.key] || [], weights) }));
+    const currents = results.map(r => r.g.current).filter(a => a !== null);
+    const overall = currents.length ? (currents.reduce((a, b) => a + b, 0) / currents.length) : null;
+    const widgetRows = results.map(r => ({ subject: r.subject, color: r.color, avg: r.g.current, count: r.list.filter(x => gradeNum(x.grade) !== null).length }));
     const titleFor = (it) => (it.title && it.title.trim()) || it.subject || '(untitled)';
+    const fmt = (n) => n == null ? '—' : n.toFixed(2).replace(/\.?0+$/, '') || '0';
 
     if (!classes.length) {
-      return <div className="grades-wrap"><div className="day-empty">Create classes in the Schedule tab first. Then every homework and exam for those classes shows up here with a box for its grade (0–{GRADE_MAX}).</div></div>;
+      return <div className="grades-wrap"><div className="day-empty">Create classes in the Schedule tab first. Then every homework and exam for those classes shows up here, sorted into its corte, with a box for its grade.</div></div>;
     }
 
     return (
       <div className="grades-wrap">
         <div className="grades-overall">
-          <span className="gnum">{overall == null ? '—' : overall.toFixed(1)}<small> / {GRADE_MAX}</small></span>
+          <span className="gnum">{overall == null ? '—' : overall.toFixed(2)}<small> / {GRADE_MAX}</small></span>
           <span className="glabel">Overall<br/>average</span>
         </div>
-        {subjects.map(s => {
-          const list = (bySubj[s.key] || []).slice().sort((a, b) => (a.dueDate || '').localeCompare(b.dueDate || ''));
-          const a = avgOf(list);
-          return (
-            <div className="grade-sec" key={s.key}>
-              <div className="grade-head">
-                <span className="grade-subj" style={s.color ? { color: s.color } : undefined}>{s.subject}</span>
-                <span className="grade-avg">{a == null ? '—' : a.toFixed(1)} / {GRADE_MAX}</span>
-              </div>
-              {list.length ? list.map(it =>
-                <div className="grade-row" key={it.id}>
-                  <span className="grade-kind">{it.kind === 'exam' ? 'EXAM' : 'HW'}</span>
-                  <span className="grade-name" onClick={() => onEditItem(it)}>{titleFor(it)}</span>
-                  <GradeInput item={it} onCommit={onSetGrade} />
-                  <span className="grade-slash">/ {GRADE_MAX}</span>
-                </div>) : <div className="day-empty">No homework or exams yet for this class.</div>}
+
+        <button className="wtoggle" onClick={() => setShowW(v => !v)}>
+          <span>Cortes · {weights.map(w => w + '%').join(' / ')}</span>
+          <span className="wcaret">{showW ? '▴' : '▾'}</span>
+        </button>
+        {showW && (
+          <div className="wpanel">
+            <p className="field-help">How much of the final grade each corte is worth. Change it if a class uses different numbers.</p>
+            <div className="wrow">
+              {CORTES.map((c, i) =>
+                <div className="wcell" key={c}>
+                  <span className="wlab">Corte {c}</span>
+                  <NumCell value={weights[i]} onCommit={(s) => setW(i, s)} label={'Corte ' + c + ' weight'} min={0} max={100} cls="wnum" />
+                  <span className="wpct">%</span>
+                </div>)}
             </div>
-          );
-        })}
+            {Math.abs(wTotal - 100) > 0.01 && <p className="wwarn">These add up to {fmt(wTotal)}% — they should add up to 100%.</p>}
+            <button className="btn ghost wreset" onClick={() => { setWeights(DEFAULT_CORTE_W.slice()); saveCorteW(DEFAULT_CORTE_W.slice()); }}>Reset to 15 / 35 / 55</button>
+          </div>
+        )}
+
+        {results.map(r => (
+          <div className="grade-sec" key={r.key}>
+            <div className="grade-head">
+              <span className="grade-subj" style={r.color ? { color: r.color } : undefined}>{r.subject}</span>
+              <span className="grade-avg">{r.g.current == null ? '—' : r.g.current.toFixed(2)} / {GRADE_MAX}</span>
+            </div>
+            {r.g.current != null && <p className="grade-locked">{r.g.locked.toFixed(2)} of the 20 final points already earned · {fmt(r.g.weighted)}% of the class graded</p>}
+            {CORTES.map((c, i) => {
+              const list = r.list.filter(it => corteOf(it) === c).sort((a, b) => (a.dueDate || '').localeCompare(b.dueDate || ''));
+              const p = r.g.per[i];
+              return (
+                <div className="corte-block" key={c}>
+                  <div className="corte-head">
+                    <span className="corte-name">Corte {c} <em>· {fmt(weights[i])}%</em></span>
+                    <span className="corte-score">{p ? p.score.toFixed(2) + ' / 20' : '—'}{p ? <em> ({fmt(p.got)}/{fmt(p.poss)} pts)</em> : null}</span>
+                  </div>
+                  {list.length ? list.map(it =>
+                    <div className="grade-row" key={it.id}>
+                      <button className="corte-chip" title="Tap to move to another corte"
+                        onClick={() => onPatch(it, { corte: corteOf(it) === 3 ? 1 : corteOf(it) + 1 })}>C{corteOf(it)}</button>
+                      <span className="grade-kind">{it.kind === 'exam' ? 'EXAM' : 'HW'}</span>
+                      <span className="grade-name" onClick={() => onEditItem(it)}>{titleFor(it)}</span>
+                      <NumCell value={it.grade} onCommit={(s) => onPatch(it, { grade: s })} label="Grade" min={0} max={maxOf(it)} allowEmpty />
+                      <span className="grade-slash">/</span>
+                      <NumCell value={maxOf(it)} onCommit={(s) => onPatch(it, { max: parseFloat(s) })} label="Out of" min={0.5} max={1000} cls="max-in" />
+                    </div>) : <div className="day-empty small">Nothing in this corte yet.</div>}
+                </div>
+              );
+            })}
+          </div>
+        ))}
         <div className="grades-actions">
           <button className="btn primary" onClick={() => renderGradesImage('Grades', widgetRows)}>⬇ Download grades widget</button>
         </div>
@@ -1626,7 +1757,7 @@
     const detailItem = detailId ? items.find(i => i.id === detailId) : null;
 
     const toggle = async (it) => { await putHW({ ...it, done: !it.done }); load(); };
-    const setGrade = async (it, grade) => { await putHW({ ...it, grade }); load(); };
+    const patchItem = async (it, patch) => { await putHW({ ...it, ...patch }); load(); };
     const removeAtts = async (id) => { for (const a of await getAttsFor(id)) await delAtt(a.id); };
     const reallyDelete = async (it, keepGrade) => {
       await removeAtts(it.id);
@@ -1721,7 +1852,7 @@
                 : examView.map(it => <Card key={it.id} item={it} atts={attsByHw[it.id] || []} onToggle={toggle} onOpen={(i)=>setDetailId(i.id)} />)}
             </React.Fragment>
           ) : mode === 'grades' ? (
-            <Grades items={items} classes={classes} onSetGrade={setGrade} onEditItem={(i)=>setDetailId(i.id)} />
+            <Grades items={items} classes={classes} onPatch={patchItem} onEditItem={(i)=>setDetailId(i.id)} />
           ) : mode === 'cal' ? (
             <Calendar items={activeItems} semesters={semesters} selId={selSem}
               onSelSem={chooseSem} onNewSem={() => setSemSheet({})} onEditSem={(s) => setSemSheet({ editing: s })}
@@ -1746,7 +1877,7 @@
           <div className="backdrop" style={{ alignItems: 'center' }} onClick={(e) => { if (e.target.classList.contains('backdrop')) setDelTarget(null); }}>
             <div className="dialog">
               <h2>Delete “{(delTarget.title && delTarget.title.trim()) || delTarget.subject || 'this item'}”?</h2>
-              <p className="dialog-text">It has a grade of {delTarget.grade} / {GRADE_MAX}. Do you want to keep that grade counting toward your average?</p>
+              <p className="dialog-text">It has a grade of {delTarget.grade} / {maxOf(delTarget)} in corte {corteOf(delTarget)}. Do you want to keep that grade counting toward your average?</p>
               <button className="btn ghost wide-one" onClick={() => reallyDelete(delTarget, true)}>Delete, keep the grade</button>
               <button className="btn danger wide-one" onClick={() => reallyDelete(delTarget, false)}>Delete everything</button>
               <button className="btn ghost wide-one" onClick={() => setDelTarget(null)}>Cancel</button>

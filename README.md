@@ -30,6 +30,11 @@ it compiles right in the browser) as a single‑file **Progressive Web App
 - **Weekly class schedule (horario)** — build a fixed weekly timetable
   (including weekends) and **download it as a compact image** to use as a
   home‑screen widget via an app like Widgetsmith
+- **Grades by corte** — the Venezuelan university model: three *cortes* worth
+  15% / 35% / 55% of the final grade (editable). Every assignment carries its own
+  maximum, so `14/15` and `14/20` are counted correctly — each corte's score is the
+  points you earned over the points that were on the table, scaled to 0–20, and the
+  class average weighs the cortes you've actually been graded in
 - **Search & filters** — To do / Done / All, plus text search across subjects/classes/notes
 - **Backup & restore** — export all your data to one file, import it back (e.g. on a new phone)
 - **100% local** — everything is stored on your device only; nothing is ever uploaded anywhere
