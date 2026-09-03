@@ -389,6 +389,17 @@
     input:focus, textarea:focus { border-color: var(--line-strong); }
     input.err { border-color: var(--overdue); }
     textarea { min-height: 60px; resize: vertical; }
+    /* free-text notepad on an assignment */
+    textarea.notepad { line-height: 1.6; resize: none; overflow: hidden; }
+    .notepad-block { margin-top: 20px; border: 1px solid var(--line); background: var(--panel-lit); padding: 12px 14px 14px; }
+    .np-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
+    .np-head .stitle { margin: 0; font-size: 9.5px; letter-spacing: 2px; text-transform: uppercase; color: var(--faint); }
+    .np-edit { background: transparent; border: 1px solid var(--line-strong); color: var(--muted); font-family: inherit;
+      font-size: 11px; letter-spacing: 1px; text-transform: uppercase; padding: 6px 10px; cursor: pointer; flex: 0 0 auto; }
+    .np-edit.on { background: #fff; color: #000; border-color: #fff; font-weight: 700; }
+    .np-edit:active { transform: scale(.96); }
+    .notepad-block .notes { margin: 0; cursor: pointer; }
+    .np-empty { margin: 0; font-size: 13px; color: var(--faint); cursor: pointer; }
     .file-btns { display: flex; gap: 12px; margin-top: 8px; flex-wrap: wrap; }
     .file-btn { flex: 1 1 130px; text-align: center; border: 1px dashed var(--line); color: var(--muted);
       padding: 14px; font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; cursor: pointer; transition: border-color .2s, color .2s; }
@@ -799,6 +810,16 @@
     );
   }
 
+  /* ---------- A notepad that grows as you type, so nothing is hidden ---------- */
+  function Notepad({ value, onChange, placeholder, minHeight }) {
+    const ref = useRef(null);
+    const fit = () => { const el = ref.current; if (!el) return; el.style.height = 'auto'; el.style.height = Math.max(minHeight || 150, el.scrollHeight) + 'px'; };
+    useEffect(fit, [value]);
+    return <textarea ref={ref} className="notepad" value={value || ''} placeholder={placeholder}
+      style={{ minHeight: (minHeight || 150) + 'px' }}
+      onChange={e => { onChange(e.target.value); fit(); }} />;
+  }
+
   /* ---------- Sheet (add / edit homework) ---------- */
   function Sheet({ initial, subjectColors, classSubjects, prefillDate, newKind, onClose, onSaved }) {
     const kind = initial ? (initial.kind || 'homework') : (newKind || 'homework');
@@ -958,6 +979,10 @@
           <input type="text" inputMode="decimal" value={maxPts} onChange={e => setMaxPts(e.target.value)} placeholder="20" />
           <p className="field-help">How many points this is worth — put 15 if it's graded 14/15, 20 if it's out of 20.</p>
 
+          <label>Notepad</label>
+          <Notepad value={notes} onChange={setNotes} placeholder={isExam ? 'Anything you need to remember — what it covers, pages to study, what the professor said…' : 'Anything you need to remember — the instructions, pages, questions, what the professor said…'} />
+          <p className="field-help">Free text. Whatever you write here you can read back any time by opening the {isExam ? 'exam' : 'homework'}.</p>
+
           <label>{isExam ? 'Topics / checklist' : 'Subtasks'}</label>
           {subtasks.map(st =>
             <div className="subtask-row" key={st.id}>
@@ -968,9 +993,6 @@
               <button type="button" className="strm" onClick={() => removeSubtask(st.id)} aria-label="Remove">✕</button>
             </div>)}
           <div className="file-btn wide" onClick={addSubtask}>＋ Add {isExam ? 'topic' : 'subtask'}</div>
-
-          <label>Notes</label>
-          <textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Pages, questions, details…" />
 
           <label>Attachments — photos &amp; files</label>
           <div className="file-btns">
@@ -993,7 +1015,7 @@
             </div>}
           {staged.some(a => isImage(a) && !a.text) &&
             <div className={'file-btn wide' + (ocr ? ' busy' : '')} onClick={ocr ? null : transcribeStaged}>
-              {ocr ? ('Transcribing ' + ocr.i + '/' + ocr.n + ' · ' + ocr.pct + '%') : '⛯ Transcribe photo text → notes'}
+              {ocr ? ('Transcribing ' + ocr.i + '/' + ocr.n + ' · ' + ocr.pct + '%') : '⛯ Transcribe photo text'}
             </div>}
 
           <div style={{ height: '78px' }}></div>
@@ -1094,6 +1116,7 @@
               <span className={'due ' + di.cls}>{di.label}</span>
               {item.grade !== '' && item.grade != null && <span className="grade-tag">{item.grade} / {maxOf(item)}</span>}
               {subs.length > 0 && <span className="tag">{subsDone}/{subs.length} done</span>}
+              {item.notes && item.notes.trim() && <span className="tag">📝 Note</span>}
               {imgCount > 0 && <span className="tag">📷 {imgCount}</span>}
               {fileCount > 0 && <span className="tag">📎 {fileCount}</span>}
             </div>
@@ -1106,6 +1129,15 @@
   /* ---------- Detail view (read-only, with an Edit button) ---------- */
   function DetailSheet({ item, atts, onClose, onEdit, onToggle, onDelete, onChanged }) {
     const [viewer, setViewer] = useState(null);
+    const [noteEdit, setNoteEdit] = useState(false);
+    const [draft, setDraft] = useState(item.notes || '');
+    useEffect(() => { setDraft(item.notes || ''); }, [item.id, item.notes]);
+    const saveNote = async () => {
+      setNoteEdit(false);
+      if ((draft || '') === (item.notes || '')) return;
+      await putHW({ ...item, notes: draft });
+      await onChanged();
+    };
     const di = dueInfo(item.dueDate, item.done);
     const isExam = item.kind === 'exam';
     const subs = item.subtasks || [];
@@ -1136,6 +1168,18 @@
             <span className="tag">Corte {corteOf(item)}</span>
             {item.grade !== '' && item.grade != null && <span className="grade-tag">{item.grade} / {maxOf(item)}</span>}
           </div>
+          <div className="notepad-block">
+            <div className="np-head">
+              <span className="stitle">Notepad</span>
+              <button className={'np-edit' + (noteEdit ? ' on' : '')} onClick={() => noteEdit ? saveNote() : setNoteEdit(true)}>
+                {noteEdit ? 'Done' : (item.notes ? 'Edit' : '＋ Add')}
+              </button>
+            </div>
+            {noteEdit
+              ? <Notepad value={draft} onChange={setDraft} placeholder="Write anything you need to remember…" minHeight={130} />
+              : (item.notes ? <p className="notes" onClick={() => setNoteEdit(true)}>{item.notes}</p>
+                            : <p className="np-empty" onClick={() => setNoteEdit(true)}>Nothing written yet — tap ＋ Add to jot something down.</p>)}
+          </div>
           {subs.length > 0 &&
             <div className="subtasks">
               <span className="stitle">{isExam ? 'Topics' : 'Subtasks'} · {subsDone}/{subs.length}</span>
@@ -1145,7 +1189,6 @@
                   <span className="stx">{st.text}</span>
                 </div>)}
             </div>}
-          {item.notes && <p className="notes">{item.notes}</p>}
           {atts.length > 0 &&
             <div className="attachments">
               {atts.map(a => isImage(a)
