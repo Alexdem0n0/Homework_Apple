@@ -86,9 +86,9 @@
     }
 
     /* ---------- Background: grid + subtle static glow (no animation = smoother) ---------- */
-    /* Static blue washes. Glass has nothing to refract on a flat dark page, so
-       these give the frosted panels something to pick up. Painted once, never
-       animated -- they cost nothing while scrolling. */
+    /* Grid paper plus two soft static glows. Painted once and never animated,
+       so they cost nothing while scrolling, and they give the frosted nav bar
+       and sheets something to pick up. */
     .bg {
       position: fixed; inset: 0; z-index: -3;
       background: var(--bg);
@@ -615,7 +615,17 @@
        ================================================================== */
 
     body { font-family: var(--font-sans); letter-spacing: -0.01em; }
-    .grid, .glow, .ticks { display: none; }          /* iOS has no grid paper */
+    .ticks { display: none; }
+    /* The grid and the two glows stay -- they are the app's own signature and
+       they read fine under the iOS surfaces, which are opaque on top of them. */
+    .grid {
+      background-image:
+        linear-gradient(to right, rgba(255,255,255,0.045) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255,255,255,0.045) 1px, transparent 1px);
+      background-size: 54px 54px;
+    }
+    .glow { opacity: 0.075; background: radial-gradient(circle, #7FB6FF 0%, transparent 70%); }
+    .glow.two { opacity: 0.05; background: radial-gradient(circle, #9DC4FF 0%, transparent 70%); }
     .watermark { color: rgba(235,235,245,0.14); font-size: 10px; }
 
     /* --- nav bar --- */
