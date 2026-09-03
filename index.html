@@ -14,42 +14,46 @@
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
   <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
 
-  <!-- Serif for reading (titles, notes, prose), grotesque for small UI labels, mono for numbers -->
+  <!-- The phone's own typeface (SF Pro) is used throughout; Inter is only a fallback off-Apple -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Tinos:ital,wght@0,400;0,700;1,400&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
 
   <style>
     :root {
       /* Mostly black. Blue appears on text only -- active tabs, dates, amounts,
          links -- never as a big filled block. Text is a soft off-white rather
          than pure white: #fff on black causes halation and is hard on the eyes. */
-      --bg: #05070B;
-      --panel: #0C0F15;
-      --panel-lit: linear-gradient(168deg, #11151D 0%, #0C0F15 100%);
-      --line: rgba(255,255,255,0.08);
-      --line-strong: rgba(255,255,255,0.20);
-      --text: #DDE3ED;
-      --dim: #A3AEC0;      /* second-line heading grey */
-      --muted: #8A97AC;
-      --faint: #5D6A80;    /* uppercase labels */
-      --accent: #7FA3D4;   /* muted steel blue -- used on TEXT, not fills */
-      --accent-ink: #05070B;
-      --overdue: #C4707A;
-      --soon: #C89A6A;
-      --good: #7FA88C;
+      /* iOS dark mode. True black base with the standard elevated greys on top.
+         Labels follow Apple's own opacity ladder rather than pure #fff. */
+      --bg: #000000;
+      --panel: #1C1C1E;                       /* secondarySystemGroupedBackground */
+      --panel-lit: #1C1C1E;
+      --panel-2: #2C2C2E;                     /* tertiarySystemGroupedBackground */
+      --line: rgba(84,84,88,0.55);            /* separator */
+      --line-strong: rgba(84,84,88,0.85);
+      --text: #EDEDF0;                        /* label, eased off pure white */
+      --dim: rgba(235,235,245,0.62);          /* secondaryLabel */
+      --muted: rgba(235,235,245,0.60);
+      --faint: rgba(235,235,245,0.32);        /* tertiaryLabel */
+      --accent: #409CFF;                      /* systemBlue, a touch lighter */
+      --accent-ink: #FFFFFF;
+      --overdue: #FF6961;                     /* systemRed dark */
+      --soon: #FFB340;                        /* systemOrange dark */
+      --good: #30D158;                        /* systemGreen dark */
       /* Glass material -- used ONLY on sheets, headers, menus and floating
          controls. Scrolling lists stay opaque so they never stutter. */
-      --glass: rgba(255,255,255,0.06);
-      --glass-strong: rgba(255,255,255,0.11);
-      --glass-line: rgba(255,255,255,0.14);
-      --glass-blur: blur(22px) saturate(170%);
-      --glass-sheen: inset 0 1px 0 rgba(255,255,255,0.22);
-      --font-serif: 'Tinos', 'Times New Roman', Times, serif;
-      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-      --font-mono: 'JetBrains Mono', ui-monospace, monospace;
-      --r-card: 18px;
-      --r-tile: 22px;
+      --glass: rgba(30,30,32,0.72);
+      --glass-strong: rgba(44,44,46,0.82);
+      --glass-line: rgba(84,84,88,0.5);
+      --glass-blur: blur(28px) saturate(180%);
+      --glass-sheen: none;
+      /* On an iPhone this resolves to SF Pro -- the actual system typeface. */
+      --font-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', 'Inter', 'Helvetica Neue', sans-serif;
+      --font-serif: var(--font-sans);
+      --font-mono: ui-monospace, 'SF Mono', 'JetBrains Mono', monospace;
+      --r-card: 12px;
+      --r-tile: 14px;
       --r-pill: 100px;
       --elev-1: 0 4px 12px rgba(0,0,0,0.40);
       --elev-2: 0 6px 20px rgba(0,0,0,0.45);
@@ -59,8 +63,8 @@
        solid one. Same layout, no blur. */
     @media (prefers-reduced-transparency: reduce) {
       :root {
-        --glass: #11151D; --glass-strong: #171C26; --glass-blur: none;
-        --glass-line: rgba(255,255,255,0.14); --glass-sheen: none;
+        --glass: #1C1C1E; --glass-strong: #2C2C2E; --glass-blur: none;
+        --glass-line: rgba(84,84,88,0.6); --glass-sheen: none;
       }
     }
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -87,10 +91,7 @@
        animated -- they cost nothing while scrolling. */
     .bg {
       position: fixed; inset: 0; z-index: -3;
-      background:
-        radial-gradient(58% 38% at 80% 2%,  rgba(108,142,191,0.10), transparent 60%),
-        radial-gradient(70% 38% at 50% 103%, rgba(120,146,192,0.07), transparent 62%),
-        var(--bg);
+      background: var(--bg);
     }
     .grid {
       position: fixed; inset: 0; z-index: -2; pointer-events: none;
@@ -606,6 +607,157 @@
       display: flex; align-items: center; justify-content: center; cursor: pointer; transition: transform .15s; }
     .sheet-x:active { transform: scale(.9); }
     .sheet-x svg { width: 18px; height: 18px; }
+    /* ==================================================================
+       iOS layer. Everything below re-skins the app in Apple's own idiom:
+       SF Pro type ramp, large titles, inset grouped lists, segmented
+       controls, and true-black backgrounds with #1C1C1E surfaces on top.
+       Kept as one block at the end so it is easy to read -- and to undo.
+       ================================================================== */
+
+    body { font-family: var(--font-sans); letter-spacing: -0.01em; }
+    .grid, .glow, .ticks { display: none; }          /* iOS has no grid paper */
+    .watermark { color: rgba(235,235,245,0.14); font-size: 10px; }
+
+    /* --- nav bar --- */
+    header, .hub-header {
+      border-bottom: 0.5px solid var(--glass-line);
+      padding: calc(10px + env(safe-area-inset-top)) 16px 10px;
+    }
+    .brand { gap: 9px; }
+    .ghost { width: 22px; height: 22px; }
+    .wordmark { font-size: 17px; font-weight: 600; letter-spacing: 0.2px; line-height: 1.1; }
+    header.has-nav .brand { padding: 0 52px; }
+    /* iOS chrome buttons are plain blue glyphs, not bordered boxes */
+    .homebtn, .backbtn {
+      background: none; border: none; box-shadow: none; color: var(--accent);
+      -webkit-backdrop-filter: none; backdrop-filter: none;
+      width: 44px; height: 44px; top: calc(6px + env(safe-area-inset-top));
+    }
+    .homebtn svg, .backbtn svg { width: 22px; height: 22px; }
+
+    /* --- large title, the signature iOS header --- */
+    .hub-hero { padding: 22px 2px 14px; }
+    .eyebrow { font-size: 13px; letter-spacing: 0; text-transform: none; color: var(--dim); font-weight: 400; }
+    .hero-title { font-size: 34px; font-weight: 700; letter-spacing: -0.9px; line-height: 1.08; margin-top: 4px; }
+
+    /* --- inset grouped lists --- */
+    .hub-grid { gap: 11px; }
+    .hub-card, .card, .note-card {
+      background: var(--panel); border: none; box-shadow: none;
+      border-radius: var(--r-card);
+    }
+    .hub-card { border-radius: var(--r-tile); padding: 16px 15px; min-height: 116px; }
+    .hub-card:active, .card:active { background: var(--panel-2); transform: none; }
+    .hub-ic { font-size: 26px; }
+    .hub-name { font-size: 17px; font-weight: 600; letter-spacing: -0.3px; }
+    .hub-sub { font-size: 13px; color: var(--dim); letter-spacing: -0.05px; }
+    .card { padding: 13px 15px; margin-bottom: 9px; }
+    .title { font-size: 17px; font-weight: 500; letter-spacing: -0.4px; }
+    .subtitle { font-size: 15px; color: var(--dim); letter-spacing: -0.2px; margin-bottom: 5px; }
+    .notes { font-size: 16px; color: var(--dim); letter-spacing: -0.2px; line-height: 1.45; }
+    .check { border-radius: 50%; width: 24px; height: 24px; border: 1.6px solid var(--line-strong); }
+
+    /* --- metadata pills: iOS keeps these quiet and un-shouty --- */
+    .tag, .due, .kind-tag, .grade-tag, .soon-tag {
+      text-transform: none; letter-spacing: -0.1px; font-size: 12px; font-weight: 500;
+      border: none; border-radius: 6px; padding: 3px 7px; background: var(--panel-2); color: var(--dim);
+    }
+    .due { background: rgba(64,156,255,0.16); color: var(--accent); }
+    .due.overdue { background: rgba(255,105,97,0.18); color: var(--overdue); }
+    .due.soon { background: rgba(255,179,64,0.18); color: var(--soon); }
+    .grade-tag { background: rgba(48,209,88,0.16); color: var(--good); }
+    .kind-tag.exam { background: rgba(255,179,64,0.18); color: var(--soon); }
+
+    /* --- segmented control, replacing the underlined tabs --- */
+    .viewtabs {
+      gap: 2px; background: rgba(118,118,128,0.24); border-radius: 9px; padding: 2px; margin-top: 14px;
+      overflow: visible;
+    }
+    .viewtabs button {
+      flex: 1 1 0; min-width: 0; text-transform: none; letter-spacing: -0.3px; font-size: 12px; font-weight: 500;
+      color: var(--text); padding: 6px 2px; border-radius: 7px; transition: background .18s;
+      overflow: hidden; text-overflow: ellipsis;
+    }
+    .viewtabs button.active { color: var(--text); background: #636366; box-shadow: 0 1px 3px rgba(0,0,0,0.4); }
+    .viewtabs button.active::after { display: none; }
+    .filters button { text-transform: none; letter-spacing: -0.1px; font-size: 15px; }
+    .filters button.active::after { background: var(--accent); }
+
+    /* --- pills / chips --- */
+    .schip, .schip2, .dchip, .corte-chip, .np-edit, .file-btn {
+      text-transform: none; letter-spacing: -0.1px; border-radius: var(--r-pill);
+      border: none; background: var(--panel-2); color: var(--text); font-size: 14px; font-weight: 500;
+    }
+    .schip.on, .schip2.on, .dchip.on, .corte-chip { background: rgba(64,156,255,0.20); color: var(--accent); }
+    .file-btn { border: 1px dashed var(--line-strong); background: none; color: var(--accent); border-radius: 12px; }
+
+    /* --- buttons: filled systemBlue, iOS radius --- */
+    .btn {
+      border-radius: 12px; text-transform: none; letter-spacing: -0.2px; font-size: 17px; padding: 14px;
+    }
+    .btn.primary {
+      background: var(--accent); color: #fff; border: none; font-weight: 600; box-shadow: none;
+      -webkit-backdrop-filter: none; backdrop-filter: none;
+    }
+    .btn.ghost {
+      background: var(--panel-2); color: var(--accent); border: none; font-weight: 400;
+      -webkit-backdrop-filter: none; backdrop-filter: none;
+    }
+    .btn.danger { background: var(--panel-2); color: var(--overdue); border: none;
+      -webkit-backdrop-filter: none; backdrop-filter: none; }
+    .link { text-transform: none; letter-spacing: -0.1px; font-size: 15px; color: var(--accent); }
+
+    /* --- forms: iOS inset fields, not underlines --- */
+    label {
+      text-transform: none; letter-spacing: -0.05px; font-size: 13px; color: var(--dim);
+      margin: 20px 0 7px; font-weight: 400;
+    }
+    input[type=text], input[type=date], input[type=time], textarea {
+      background: var(--panel); border: none; border-radius: 10px; padding: 12px 13px; font-size: 17px;
+      letter-spacing: -0.3px;
+    }
+    input:focus, textarea:focus { border: none; box-shadow: inset 0 0 0 1.5px var(--accent); }
+    .field-help { font-size: 13px; color: var(--dim); letter-spacing: -0.1px; }
+
+    /* --- sheets: grabber handle, iOS corner radius --- */
+    .sheet { border-radius: 12px 12px 0 0; border: none; padding-top: 26px; }
+    .sheet-top::before {
+      content: ''; position: absolute; top: -17px; left: 50%; transform: translateX(-50%);
+      width: 36px; height: 5px; border-radius: 3px; background: rgba(235,235,245,0.3);
+    }
+    .backdrop { background: rgba(0,0,0,0.4); }
+    .sheet h2, .sheet-top h2 { text-transform: none; letter-spacing: -0.4px; font-size: 17px; font-weight: 600; color: var(--text); }
+    .sheet-x { background: rgba(118,118,128,0.32); border: none; color: rgba(235,235,245,0.6);
+      -webkit-backdrop-filter: none; backdrop-filter: none; }
+    .dialog { border-radius: 14px; border: none; }
+    .dialog h2 { letter-spacing: -0.4px; font-weight: 600; }
+
+    /* --- floating + : iOS blue circle --- */
+    .add, .fab.save {
+      background: var(--accent); color: #fff; border: none;
+      -webkit-backdrop-filter: none; backdrop-filter: none;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.5);
+    }
+    .fab.save svg { stroke: #fff; }
+    .addmenu button { border-radius: 14px; letter-spacing: -0.2px; font-weight: 500; }
+
+    /* --- the small uppercase micro-labels iOS uses above a group --- */
+    .stitle, .np-head .stitle, .corte-name, .wlab, .glabel, .grade-kind {
+      text-transform: uppercase; font-size: 12px; letter-spacing: 0.3px; color: var(--dim); font-weight: 400;
+    }
+    .empty p { text-transform: none; letter-spacing: -0.2px; font-size: 15px; }
+    .day-empty { font-size: 15px; letter-spacing: -0.2px; }
+    .notepad-block, .grade-row, .wpanel { border: none; background: var(--panel); }
+    .wtoggle { border: none; background: var(--panel); text-transform: none; letter-spacing: -0.1px; font-size: 15px; }
+    input.grade-in { border: none; background: var(--panel-2); border-radius: 8px; }
+    .grade-in.max-in { border: none; }
+    .search {
+      font-size: 17px; letter-spacing: -0.3px; background: rgba(118,118,128,0.24); border: none;
+      border-radius: 10px; padding: 9px 12px; color: var(--text);
+    }
+    .search::placeholder { color: var(--faint); }
+    .search:focus { border: none; box-shadow: inset 0 0 0 1.5px var(--accent); }
+
   </style>
 </head>
 <body>
@@ -1925,7 +2077,7 @@
           </button>
           <div className="brand">
             <Ghost />
-            <div className="wordmark"><Flick text="HOME" /><br/><Flick text="WORK" /></div>
+            <div className="wordmark"><Flick text="HOMEWORK" /></div>
           </div>
           <div className="viewtabs">
             <button className={mode === 'list' ? 'active' : ''} onClick={() => setMode('list')}>Homework</button>
