@@ -1311,7 +1311,7 @@
           <button type="button" key={c} className={'swatch' + (color === c ? ' on' : '')}
             style={{ background: c }} onClick={() => onChange(color === c ? '' : c)} title={c}></button>)}
         <label className={'swatch custom' + (isCustom ? ' on' : '')} style={isCustom ? { background: color } : undefined} title="Custom colour">
-          {!isCustom && <span>ðŸŽ¨</span>}
+          {!isCustom && <span>🎨</span>}
           <input type="color" value={color || '#7aa2ff'} onChange={e => onChange(e.target.value)} />
         </label>
       </div>
@@ -1388,13 +1388,14 @@
   }
 
   /* ---------- Sheet (add / edit homework) ---------- */
-  function Sheet({ initial, subjectColors, classSubjects, prefillDate, prefillSem, newKind, onClose, onSaved }) {
+  function Sheet({ initial, semesters = [], subjectColors, classSubjects, prefillDate, prefillSem, newKind, onClose, onSaved }) {
     const kind = initial ? (initial.kind || 'homework') : (newKind || 'homework');
     const isExam = kind === 'exam';
     const kindWord = isExam ? 'exam' : 'homework';
     const [title, setTitle] = useState(initial ? (initial.title || '') : '');
     const [subject, setSubject] = useState(initial ? initial.subject : '');
     const [className, setClassName] = useState(initial ? (initial.className || '') : '');
+    const [semesterId, setSemesterId] = useState(initial ? (initial.semesterId || prefillSem || '') : (prefillSem || ''));
     const [dueDate, setDueDate] = useState(initial ? initial.dueDate : (prefillDate || ''));
     const [notes, setNotes] = useState(initial ? initial.notes : '');
     const [color, setColor] = useState(initial ? (initial.color || '') : '');
@@ -1477,7 +1478,7 @@
       const id = initial ? initial.id : uid();
       const cleanSubs = subtasks.filter(s => s.text.trim()).map(s => ({ id: s.id, text: s.text.trim(), done: !!s.done }));
       const mp = parseFloat(String(maxPts).replace(',', '.'));
-      const hw = { id, kind, title: ttl, subject: subj, classNo: initial ? (initial.classNo || '') : '',
+      const hw = { id, kind, semesterId: semesterId || '', title: ttl, subject: subj, classNo: initial ? (initial.classNo || '') : '',
         corte, max: (isFinite(mp) && mp > 0) ? mp : GRADE_MAX,
         className: className.trim(), dueDate, notes: notes.trim(), color, subtasks: cleanSubs,
         grade: initial ? (initial.grade || '') : '', archived: initial ? (initial.archived || false) : false,
@@ -1524,7 +1525,6 @@
           </p>
 
           <label>Colour</label>
-          <label>Colour</label>
           <Swatches color={color} onChange={pickColor} />
 
 
@@ -1533,6 +1533,18 @@
 
           <label>Class / group (optional)</label>
           <input type="text" value={className} onChange={e => setClassName(e.target.value)} placeholder="e.g. 10-B · Group 7" autoComplete="off" />
+
+          {semesters.length > 0 && (
+            <React.Fragment>
+              <label>Semester</label>
+              <div className="daypick">
+                <button type="button" className={'dchip' + (!semesterId ? ' on' : '')} onClick={() => setSemesterId('')}>All / None</button>
+                {semesters.map(s => (
+                  <button type="button" key={s.id} className={'dchip' + (semesterId === s.id ? ' on' : '')} onClick={() => setSemesterId(s.id)}>{s.name}</button>
+                ))}
+              </div>
+            </React.Fragment>
+          )}
 
           <label>{isExam ? 'Exam date' : 'Due / finish by'}</label>
           <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} />
@@ -1783,17 +1795,25 @@
 
   /* ---------- Semester create / edit sheet ---------- */
   function SemesterSheet({ initial, onClose, onSaved, onDelete }) {
+    const defStart = () => toIso(new Date());
+    const defEnd = () => { const d = new Date(); d.setMonth(d.getMonth() + 4); return toIso(d); };
     const [name, setName] = useState(initial ? initial.name : '');
-    const [start, setStart] = useState(initial ? initial.start : '');
-    const [end, setEnd] = useState(initial ? initial.end : '');
+    const [start, setStart] = useState(initial ? initial.start : defStart());
+    const [end, setEnd] = useState(initial ? initial.end : defEnd());
     const [err, setErr] = useState('');
 
     async function save() {
       if (!name.trim()) { setErr('Please name the semester.'); return; }
-      if (!start || !end) { setErr('Please set a start and end date.'); return; }
-      if (end < start) { setErr('End date must be after the start date.'); return; }
+      const s = start || defStart();
+      let e = end;
+      if (!e) {
+        const d = new Date(s + 'T00:00:00');
+        d.setMonth(d.getMonth() + 4);
+        e = toIso(d);
+      }
+      if (e < s) { setErr('End date must be after the start date.'); return; }
       const id = initial ? initial.id : uid();
-      await putSem({ id, name: name.trim(), start, end, createdAt: initial ? initial.createdAt : Date.now() });
+      await putSem({ id, name: name.trim(), start: s, end: e, createdAt: initial ? initial.createdAt : Date.now() });
       onSaved(id);
     }
     return (
@@ -1949,9 +1969,10 @@
   }
 
   /* ---------- Class create / edit sheet ---------- */
-  function ClassSheet({ initial, selSem, subjectColors, onClose, onSaved, onDelete }) {
+  function ClassSheet({ initial, semesters = [], selSem, subjectColors, onClose, onSaved, onDelete }) {
     const [subject, setSubject] = useState(initial ? initial.subject : '');
     const [color, setColor] = useState(initial ? (initial.color || '') : '');
+    const [semId, setSemId] = useState(initial ? (initial.semesterId || selSem || '') : (selSem || ''));
     const [day, setDay] = useState(initial ? initial.day : 0);
     const [start, setStart] = useState(initial ? initial.start : '08:00');
     const [end, setEnd] = useState(initial ? initial.end : '09:00');
@@ -1967,7 +1988,7 @@
       if (!start || !end) { setErr('Please set start and end times.'); return; }
       if (end <= start) { setErr('End time must be after the start time.'); return; }
       const id = initial ? initial.id : uid();
-      const semesterId = initial ? (initial.semesterId || selSem || '') : (selSem || '');
+      const semesterId = semId || '';
       await putClass({ id, semesterId, subject: subject.trim(), color, day, start, end, room: room.trim(), createdAt: initial ? initial.createdAt : Date.now() });
       onSaved();
     }
@@ -1984,7 +2005,6 @@
           <label>Subject *</label>
           <input type="text" value={subject} onChange={e => onSub(e.target.value)} placeholder="e.g. Mathematics" autoComplete="off" style={color ? { color } : undefined} />
 
-          <label>Colour</label>
           <label>Colour</label>
           <Swatches color={color} onChange={pick} />
 
@@ -2098,19 +2118,19 @@
         <div className="sembar">
           <button className={'schip' + (!selId ? ' on' : '')} onClick={() => onSelSem(null)}>All</button>
           {semesters.map(s => <button key={s.id} className={'schip' + (selId === s.id ? ' on' : '')} onClick={() => onSelSem(s.id)}>{s.name}</button>)}
-          <button className="schip newitem" onClick={onNewSem}>ï¼‹ Semester</button>
+          <button className="schip newitem" onClick={onNewSem}>＋ Semester</button>
         </div>
         <div className="sched-head">
           <span className="mlabel">{title}</span>
           <span>
             {sem && <button className="link" onClick={() => onEditSem(sem)} style={{ marginRight: '10px' }}>Edit</button>}
-            <button className="link" onClick={onNew}>ï¼‹ Add class</button>
+            <button className="link" onClick={onNew}>＋ Add class</button>
           </span>
         </div>
 
         {activeClasses.length === 0 &&
           <div className="day-empty">
-            {sem ? 'No classes yet in â€œ' + sem.name + 'â€ â€” tap â€œï¼‹ Add classâ€ to build this semesterâ€™s schedule.' : 'No classes yet â€” tap â€œï¼‹ Add classâ€ to build your schedule.'}
+            {sem ? 'No classes yet in “' + sem.name + '” — tap “＋ Add class” to build this semesterâ€™s schedule.' : 'No classes yet — tap “＋ Add class” to build your schedule.'}
           </div>}
 
         {activeClasses.length > 0 && viewDays.map(d =>
@@ -2119,19 +2139,19 @@
             {(byDay[d] || []).length
               ? byDay[d].map(c =>
                   <div className="cls" key={c.id} onClick={() => onEdit(c)} style={{ borderLeftColor: c.color || '#f5f5f7' }}>
-                    <span className="cls-time mono">{c.start}â€“{c.end}</span>
+                    <span className="cls-time mono">{c.start}–{c.end}</span>
                     <span className="cls-sub" style={c.color ? { color: c.color } : undefined}>{c.subject}</span>
                     {c.room && <span className="cls-room">{c.room}</span>}
                   </div>)
-              : <div className="cls-empty">â€”</div>}
+              : <div className="cls-empty">—</div>}
           </div>)}
 
         {activeClasses.length > 0 &&
           <React.Fragment>
             <div className="sched-actions">
-              <button className="btn primary" onClick={() => renderScheduleImage(title, imageDays, byDay)}>â¬‡ Download schedule image</button>
+              <button className="btn primary" onClick={() => renderScheduleImage(title, imageDays, byDay)}>⬇ Download schedule image</button>
             </div>
-            <p className="sched-note">Save the image, then add it with a photoâ€‘widget app (e.g. Widgetsmith) to show your schedule on your home screen.</p>
+            <p className="sched-note">Save the image, then add it with a photo-widget app (e.g. Widgetsmith) to show your schedule on your home screen.</p>
           </React.Fragment>}
       </div>
     );
@@ -2232,7 +2252,7 @@
     const overall = currents.length ? (currents.reduce((a, b) => a + b, 0) / currents.length) : null;
     const widgetRows = results.map(r => ({ subject: r.subject, color: r.color, avg: r.g.current, count: r.list.filter(x => gradeNum(x.grade) !== null).length }));
     const titleFor = (it) => (it.title && it.title.trim()) || it.subject || '(untitled)';
-    const fmt = (n) => n == null ? 'â€”' : n.toFixed(2).replace(/\.?0+$/, '') || '0';
+    const fmt = (n) => n == null ? '—' : n.toFixed(2).replace(/\.?0+$/, '') || '0';
 
     // Calculate corte averages across all classes in this semester
     const corteAverages = CORTES.map((c, i) => {
@@ -2245,7 +2265,7 @@
         <div className="sembar">
           <button className={'schip' + (!selId ? ' on' : '')} onClick={() => onSelSem(null)}>All</button>
           {semesters.map(s => <button key={s.id} className={'schip' + (selId === s.id ? ' on' : '')} onClick={() => onSelSem(s.id)}>{s.name}</button>)}
-          <button className="schip newitem" onClick={onNewSem}>ï¼‹ Semester</button>
+          <button className="schip newitem" onClick={onNewSem}>＋ Semester</button>
         </div>
 
         {/* Big Overall Card: /100 and /20 + 3 Cortes Breakdown */}
@@ -2253,7 +2273,7 @@
           <div className="grades-overall-top">
             <div>
               <span className="gnum-100">
-                {overall != null ? (overall * 5).toFixed(1) : 'â€”'}
+                {overall != null ? (overall * 5).toFixed(1) : '—'}
                 <small> / 100</small>
               </span>
               <span className="glabel-sub">
@@ -2275,11 +2295,11 @@
                 <div className="corte-sum-card" key={c}>
                   <span className="corte-sum-name">Corte {c} <small>({w}%)</small></span>
                   <span className="corte-sum-pts">
-                    {ptsW != null ? ptsW.toFixed(1) : 'â€”'}
+                    {ptsW != null ? ptsW.toFixed(1) : '—'}
                     <small> / {w}</small>
                   </span>
                   <span className="corte-sum-20">
-                    {avg20 != null ? avg20.toFixed(2) + ' / 20' : 'â€”'}
+                    {avg20 != null ? avg20.toFixed(2) + ' / 20' : '—'}
                   </span>
                 </div>
               );
@@ -2288,8 +2308,8 @@
         </div>
 
         <button className="wtoggle" onClick={() => setShowW(v => !v)}>
-          <span>Cortes Â· {weights.map(w => w + '%').join(' / ')}</span>
-          <span className="wcaret">{showW ? 'â–´' : 'â–¾'}</span>
+          <span>Cortes · {weights.map(w => w + '%').join(' / ')}</span>
+          <span className="wcaret">{showW ? '▴' : '▾'}</span>
         </button>
         {showW && (
           <div className="wpanel">
@@ -2302,14 +2322,14 @@
                   <span className="wpct">%</span>
                 </div>)}
             </div>
-            {Math.abs(wTotal - 100) > 0.01 && <p className="wwarn">These add up to {fmt(wTotal)}% â€” they should add up to 100%.</p>}
+            {Math.abs(wTotal - 100) > 0.01 && <p className="wwarn">These add up to {fmt(wTotal)}% — they should add up to 100%.</p>}
             <button className="btn ghost wreset" onClick={() => { setWeights(DEFAULT_CORTE_W.slice()); saveCorteW(DEFAULT_CORTE_W.slice()); }}>Reset to 15 / 30 / 55</button>
           </div>
         )}
 
         {!semClasses.length && (
           <div className="day-empty">
-            {sem ? 'No classes in â€œ' + sem.name + 'â€ yet. Add classes in the Schedule tab to track your grades here.' : 'Create classes in the Schedule tab first. Then every homework and exam for those classes shows up here, sorted into its corte, with a box for its grade.'}
+            {sem ? 'No classes in “' + sem.name + '” yet. Add classes in the Schedule tab to track your grades here.' : 'Create classes in the Schedule tab first. Then every homework and exam for those classes shows up here, sorted into its corte, with a box for its grade.'}
           </div>
         )}
 
@@ -2325,9 +2345,9 @@
             <div className="grade-sec" key={r.key}>
               <div className="grade-head">
                 <span className="grade-subj" style={r.color ? { color: r.color } : undefined}>{r.subject}</span>
-                <span className="grade-avg">{r.g.current == null ? 'â€”' : (r.g.current * 5).toFixed(1) + ' / 100'}<small style={{ fontSize: '13px', color: 'var(--dim)', marginLeft: '6px' }}>({r.g.current == null ? 'â€”' : r.g.current.toFixed(2)} / 20)</small></span>
+                <span className="grade-avg">{r.g.current == null ? '—' : (r.g.current * 5).toFixed(1) + ' / 100'}<small style={{ fontSize: '13px', color: 'var(--dim)', marginLeft: '6px' }}>({r.g.current == null ? '—' : r.g.current.toFixed(2)} / 20)</small></span>
               </div>
-              {r.g.current != null && <p className="grade-locked">{((r.g.locked / 20) * 100).toFixed(1)}% of the total class grade earned so far Â· {fmt(r.g.weighted)}% evaluated</p>}
+              {r.g.current != null && <p className="grade-locked">{((r.g.locked / 20) * 100).toFixed(1)}% of the total class grade earned so far · {fmt(r.g.weighted)}% evaluated</p>}
               {CORTES.map((c, i) => {
                 const list = r.list.filter(it => corteOf(it) === c).sort((a, b) => (a.dueDate || '').localeCompare(b.dueDate || ''));
                 const p = r.g.per[i];
@@ -2337,9 +2357,9 @@
                 return (
                   <div className="corte-block" key={c}>
                     <div className="corte-head">
-                      <span className="corte-name">Corte {c} <em>Â· {fmt(corteWeight)}%</em></span>
+                      <span className="corte-name">Corte {c} <em>· {fmt(corteWeight)}%</em></span>
                       <span className="corte-score">
-                        {ptsEarnedInCorte != null ? ptsEarnedInCorte.toFixed(1) + ' / ' + corteWeight + ' pts' : 'â€”'}
+                        {ptsEarnedInCorte != null ? ptsEarnedInCorte.toFixed(1) + ' / ' + corteWeight + ' pts' : '—'}
                         {p ? <em> ({p.score.toFixed(2)} / 20)</em> : null}
                       </span>
                     </div>
@@ -2376,9 +2396,9 @@
         {results.length > 0 && (
           <React.Fragment>
             <div className="grades-actions">
-              <button className="btn primary" onClick={() => renderGradesImage(sem ? sem.name + ' - Grades' : 'Grades', widgetRows)}>â¬‡ Download grades widget</button>
+              <button className="btn primary" onClick={() => renderGradesImage(sem ? sem.name + ' - Grades' : 'Grades', widgetRows)}>⬇ Download grades widget</button>
             </div>
-            <p className="sched-note">Save the image, then add it with a photoâ€‘widget app (e.g. Widgetsmith) to see your averages on your home screen.</p>
+            <p className="sched-note">Save the image, then add it with a photo-widget app (e.g. Widgetsmith) to see your averages on your home screen.</p>
           </React.Fragment>
         )}
       </div>
@@ -2418,7 +2438,7 @@
 
     useEffect(() => { openDB().then(d => { db = d; load(); }); }, []);
 
-    const chooseSem = (id) => { setSelSem(id); if (id) localStorage.setItem('hw_sem', id); else localStorage.removeItem('hw_sem'); };
+    const chooseSem = (id) => { setSelSem(id); try { if (id) localStorage.setItem('hw_sem', id); else localStorage.removeItem('hw_sem'); } catch (e) {} };
     const deleteSem = async (s) => {
       if (!confirm('Delete this semester? (Your homework is not deleted.)')) return;
       await delSemRec(s.id);
@@ -2450,7 +2470,8 @@
     // subjects you can tap-to-pick when adding homework, taken from your schedule classes
     const classSubjects = [];
     const seenSubj = new Set();
-    for (const c of classes) {
+    const semClassesForPick = selSem ? classes.filter(c => c.semesterId === selSem || (!c.semesterId && semesters.length <= 1)) : classes;
+    for (const c of semClassesForPick) {
       const key = (c.subject || '').trim().toLowerCase();
       if (key && !seenSubj.has(key)) { seenSubj.add(key); classSubjects.push({ subject: c.subject.trim(), color: c.color || '' }); }
     }
@@ -2524,9 +2545,8 @@
               <div className="sembar">
                 <button className={'schip' + (!selSem ? ' on' : '')} onClick={() => chooseSem(null)}>All</button>
                 {semesters.map(s => <button key={s.id} className={'schip' + (selSem === s.id ? ' on' : '')} onClick={() => chooseSem(s.id)}>{s.name}</button>)}
-                <button className="schip newitem" onClick={() => setSemSheet({})}>ï¼‹ Semester</button>
+                <button className="schip newitem" onClick={() => setSemSheet({})}>＋ Semester</button>
               </div>
-            <React.Fragment>
               <div className="toolbar">
                 <input className="search" placeholder="Search homework…" value={search} onChange={e => setSearch(e.target.value)} />
               </div>
@@ -2554,9 +2574,8 @@
               <div className="sembar">
                 <button className={'schip' + (!selSem ? ' on' : '')} onClick={() => chooseSem(null)}>All</button>
                 {semesters.map(s => <button key={s.id} className={'schip' + (selSem === s.id ? ' on' : '')} onClick={() => chooseSem(s.id)}>{s.name}</button>)}
-                <button className="schip newitem" onClick={() => setSemSheet({})}>ï¼‹ Semester</button>
+                <button className="schip newitem" onClick={() => setSemSheet({})}>＋ Semester</button>
               </div>
-            <React.Fragment>
               <div className="sched-head"><span className="mlabel">Exams</span></div>
               {examView.length === 0
                 ? <div className="empty">
@@ -2586,8 +2605,8 @@
         {addMenu &&
           <div className="addmenu-backdrop" onClick={() => setAddMenu(false)}>
             <div className="addmenu" onClick={e => e.stopPropagation()}>
-              <button onClick={() => { setAddMenu(false); setSheet({ newKind: 'exam' }); }}>📝 New exam</button>
-              <button onClick={() => { setAddMenu(false); setSheet({ newKind: 'homework' }); }}>📓 New homework</button>
+              <button onClick={() => { setAddMenu(false); setSheet({ newKind: 'exam', prefillSem: selSem }); }}>📝 New exam</button>
+              <button onClick={() => { setAddMenu(false); setSheet({ newKind: 'homework', prefillSem: selSem }); }}>📓 New homework</button>
             </div>
           </div>}
 
@@ -2609,9 +2628,9 @@
           onDelete={(it) => { setDetailId(null); del(it); }}
           onChanged={load} />}
 
-        {sheet && <Sheet initial={sheet.editing || null} prefillDate={sheet.date || ''} prefillSem={sheet.prefillSem || selSem || ''} newKind={sheet.newKind || 'homework'} subjectColors={subjectColors} classSubjects={classSubjects} onClose={() => setSheet(null)} onSaved={() => { setSheet(null); load(); }} />}
+        {sheet && <Sheet initial={sheet.editing || null} semesters={semesters} prefillDate={sheet.date || ''} prefillSem={sheet.prefillSem || selSem || ''} newKind={sheet.newKind || 'homework'} subjectColors={subjectColors} classSubjects={classSubjects} onClose={() => setSheet(null)} onSaved={() => { setSheet(null); load(); }} />}
         {semSheet && <SemesterSheet initial={semSheet.editing || null} onClose={() => setSemSheet(null)} onDelete={deleteSem} onSaved={(id) => { setSemSheet(null); chooseSem(id); load(); }} />}
-        {classSheet && <ClassSheet initial={classSheet.editing || null} selSem={classSheet.selSem || selSem || ''} subjectColors={subjectColors} onClose={() => setClassSheet(null)} onDelete={deleteClass} onSaved={() => { setClassSheet(null); load(); }} />}
+        {classSheet && <ClassSheet initial={classSheet.editing || null} semesters={semesters} selSem={classSheet.selSem || selSem || ''} subjectColors={subjectColors} onClose={() => setClassSheet(null)} onDelete={deleteClass} onSaved={() => { setClassSheet(null); load(); }} />}
       </React.Fragment>
     );
   }
@@ -2644,7 +2663,6 @@
           <input ref={ref} type="text" value={title} onChange={e => setTitle(e.target.value)} placeholder="Title" autoComplete="off" style={color ? { color } : undefined} />
           <label>Note</label>
           <textarea value={body} onChange={e => setBody(e.target.value)} placeholder="Write anything…" style={{ minHeight: '180px' }} />
-          <label>Colour</label>
           <label>Colour</label>
           <Swatches color={color} onChange={setColor} />
 
@@ -2812,7 +2830,6 @@
             <div className="file-btn" onClick={addHead}>＋ Title</div>
           </div>
           <label>Colour</label>
-          <label>Colour</label>
           <Swatches color={color} onChange={setColor} />
 
 
@@ -2938,7 +2955,6 @@
           <div className="daypick">
             {ICONS.map(ic => <button type="button" key={ic} className={'dchip' + (icon === ic ? ' on' : '')} onClick={() => setIcon(ic)} style={{ fontSize: '17px' }}>{ic}</button>)}
           </div>
-          <label>Colour</label>
           <label>Colour</label>
           <Swatches color={color} onChange={setColor} />
 
