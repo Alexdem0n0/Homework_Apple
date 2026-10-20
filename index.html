@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -896,6 +896,131 @@
       font-family: var(--font-mono);
       margin-top: 2px;
     }
+    /* ---------- Grades Overall & Corte Summary Cards ---------- */
+    .grades-overall-card {
+      background: var(--panel);
+      border-radius: var(--r-tile);
+      padding: 16px;
+      margin-bottom: 16px;
+      border: 1px solid var(--line);
+    }
+    .grades-overall-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 14px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid rgba(84,84,88,0.25);
+    }
+    .gnum-100 {
+      font-size: 38px;
+      font-weight: 700;
+      letter-spacing: -1px;
+      font-family: var(--font-sans);
+      color: var(--text);
+      line-height: 1;
+    }
+    .gnum-100 small {
+      font-size: 16px;
+      font-weight: 500;
+      color: var(--dim);
+      letter-spacing: 0;
+    }
+    .glabel-sub {
+      display: block;
+      font-size: 13px;
+      font-family: var(--font-mono);
+      color: var(--good);
+      margin-top: 5px;
+    }
+    .corte-summary-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+    .corte-sum-card {
+      background: var(--panel-2);
+      border-radius: 10px;
+      padding: 10px 8px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+    .corte-sum-name {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      color: var(--dim);
+      font-weight: 600;
+    }
+    .corte-sum-pts {
+      font-size: 18px;
+      font-weight: 700;
+      font-family: var(--font-sans);
+      color: var(--text);
+    }
+    .corte-sum-pts small {
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--muted);
+    }
+    .corte-sum-20 {
+      font-size: 11px;
+      font-family: var(--font-mono);
+      color: var(--dim);
+    }
+
+    /* Low grades highlights */
+    .grade-badge {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      padding: 2px 6px;
+      border-radius: 4px;
+      letter-spacing: 0.3px;
+    }
+    .grade-badge.danger {
+      background: rgba(255, 69, 58, 0.2);
+      color: #FF453A;
+      border: 1px solid rgba(255, 69, 58, 0.35);
+    }
+    .grade-badge.warn {
+      background: rgba(255, 159, 10, 0.2);
+      color: #FF9F0A;
+      border: 1px solid rgba(255, 159, 10, 0.35);
+    }
+    input.grade-in.low-fail {
+      background: rgba(255, 69, 58, 0.18) !important;
+      color: #FF453A !important;
+      box-shadow: inset 0 0 0 1px rgba(255, 69, 58, 0.6) !important;
+    }
+    input.grade-in.low-warn {
+      background: rgba(255, 159, 10, 0.14) !important;
+      color: #FF9F0A !important;
+      box-shadow: inset 0 0 0 1px rgba(255, 159, 10, 0.45) !important;
+    }
+
+    /* Custom Swatch with Native Color Picker */
+    .swatch.custom {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--panel-2);
+      border: 1px dashed var(--line-strong);
+      font-size: 14px;
+      overflow: hidden;
+      position: relative;
+    }
+    .swatch.custom input[type="color"] {
+      position: absolute;
+      inset: -10px;
+      width: 50px;
+      height: 50px;
+      opacity: 0;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
@@ -937,7 +1062,7 @@
   const LOC = 'en-US';
   const GRADE_MAX = 20; // Venezuela 0–20 scale
   const CORTES = [1, 2, 3];
-  const DEFAULT_CORTE_W = [15, 35, 55];                     // % each corte is worth
+  const DEFAULT_CORTE_W = [15, 30, 55];                     // % each corte is worth
   const maxOf = (o) => { const m = Number(o.max); return isFinite(m) && m > 0 ? m : GRADE_MAX; };
   const corteOf = (o) => { const c = Number(o.corte); return (c === 2 || c === 3) ? c : 1; };
   const gradeNum = (g) => { if (g === '' || g == null) return null; const n = parseFloat(String(g).replace(',', '.')); return isNaN(n) ? null : n; };
@@ -946,7 +1071,7 @@
   function loadCorteW() {
     try {
       const raw = JSON.parse(localStorage.getItem('corte_w') || 'null');
-      if (Array.isArray(raw) && raw.length === 3 && raw.every(n => isFinite(n) && n >= 0)) return raw.map(Number);
+      if (Array.isArray(raw) && raw.length === 3 && raw.every(n => isFinite(n) && n >= 0)) { if (raw[0] === 15 && raw[1] === 35 && raw[2] === 55) { saveCorteW(DEFAULT_CORTE_W); return DEFAULT_CORTE_W.slice(); } return raw.map(Number); }
     } catch (e) {}
     return DEFAULT_CORTE_W.slice();
   }
@@ -1170,7 +1295,28 @@
   }
 
   /* ---------- Subject colours & days ---------- */
-  const COLORS = ['#e06666', '#e9a23b', '#ead24a', '#5fd08a', '#5cc7e0', '#7aa2ff', '#b98bff', '#ff8ac4'];
+    const COLORS = [
+    '#FF453A', '#FF6961', '#FF9F0A', '#FFB340', '#FFD60A', '#EAD24A',
+    '#32D74B', '#5FD08A', '#30D158', '#64D2FF', '#5CC7E0', '#0A84FF',
+    '#7AA2FF', '#5E5CE6', '#B98BFF', '#BF5AF2', '#FF375F', '#FF8AC4'
+  ];
+
+  /* Reusable swatch picker with 18 curated colors + native Apple Color Picker */
+  function Swatches({ color, onChange }) {
+    const isCustom = color && !COLORS.includes(color);
+    return (
+      <div className="swatches">
+        <button type="button" className={'swatch none' + (color ? '' : ' on')} onClick={() => onChange('')} title="Default (white)"></button>
+        {COLORS.map(c =>
+          <button type="button" key={c} className={'swatch' + (color === c ? ' on' : '')}
+            style={{ background: c }} onClick={() => onChange(color === c ? '' : c)} title={c}></button>)}
+        <label className={'swatch custom' + (isCustom ? ' on' : '')} style={isCustom ? { background: color } : undefined} title="Custom colour">
+          {!isCustom && <span>ðŸŽ¨</span>}
+          <input type="color" value={color || '#7aa2ff'} onChange={e => onChange(e.target.value)} />
+        </label>
+      </div>
+    );
+  }
   const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
   const DAYS_SHORT = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
@@ -1242,7 +1388,7 @@
   }
 
   /* ---------- Sheet (add / edit homework) ---------- */
-  function Sheet({ initial, subjectColors, classSubjects, prefillDate, newKind, onClose, onSaved }) {
+  function Sheet({ initial, subjectColors, classSubjects, prefillDate, prefillSem, newKind, onClose, onSaved }) {
     const kind = initial ? (initial.kind || 'homework') : (newKind || 'homework');
     const isExam = kind === 'exam';
     const kindWord = isExam ? 'exam' : 'homework';
@@ -1378,12 +1524,12 @@
           </p>
 
           <label>Colour</label>
-          <div className="swatches">
-            <button type="button" className={'swatch none' + (color ? '' : ' on')} onClick={() => pickColor('')} title="Default (white)"></button>
-            {COLORS.map(c =>
-              <button type="button" key={c} className={'swatch' + (color === c ? ' on' : '')}
-                style={{ background: c }} onClick={() => pickColor(c)} title={c}></button>)}
-          </div>
+          <label>Colour</label>
+          <Swatches color={color} onChange={pickColor} />
+
+
+
+
 
           <label>Class / group (optional)</label>
           <input type="text" value={className} onChange={e => setClassName(e.target.value)} placeholder="e.g. 10-B · Group 7" autoComplete="off" />
@@ -1803,7 +1949,7 @@
   }
 
   /* ---------- Class create / edit sheet ---------- */
-  function ClassSheet({ initial, subjectColors, onClose, onSaved, onDelete }) {
+  function ClassSheet({ initial, selSem, subjectColors, onClose, onSaved, onDelete }) {
     const [subject, setSubject] = useState(initial ? initial.subject : '');
     const [color, setColor] = useState(initial ? (initial.color || '') : '');
     const [day, setDay] = useState(initial ? initial.day : 0);
@@ -1821,7 +1967,8 @@
       if (!start || !end) { setErr('Please set start and end times.'); return; }
       if (end <= start) { setErr('End time must be after the start time.'); return; }
       const id = initial ? initial.id : uid();
-      await putClass({ id, subject: subject.trim(), color, day, start, end, room: room.trim(), createdAt: initial ? initial.createdAt : Date.now() });
+      const semesterId = initial ? (initial.semesterId || selSem || '') : (selSem || '');
+      await putClass({ id, semesterId, subject: subject.trim(), color, day, start, end, room: room.trim(), createdAt: initial ? initial.createdAt : Date.now() });
       onSaved();
     }
 
@@ -1838,10 +1985,10 @@
           <input type="text" value={subject} onChange={e => onSub(e.target.value)} placeholder="e.g. Mathematics" autoComplete="off" style={color ? { color } : undefined} />
 
           <label>Colour</label>
-          <div className="swatches">
-            <button type="button" className={'swatch none' + (color ? '' : ' on')} onClick={() => pick('')} title="Default (white)"></button>
-            {COLORS.map(c => <button type="button" key={c} className={'swatch' + (color === c ? ' on' : '')} style={{ background: c }} onClick={() => pick(c)}></button>)}
-          </div>
+          <label>Colour</label>
+          <Swatches color={color} onChange={pick} />
+
+
 
           <label>Day</label>
           <div className="daypick">
@@ -1933,51 +2080,64 @@
   }
 
   /* ---------- Schedule view ---------- */
-  function Schedule({ classes, semesters, selId, onEdit, onNew }) {
+  /* ---------- Schedule view with semester selector & scoping ---------- */
+  function Schedule({ classes, semesters, selId, onSelSem, onNewSem, onEditSem, onEdit, onNew }) {
     const sem = semesters.find(s => s.id === selId) || null;
-    const title = sem ? sem.name : 'Weekly Schedule';
+    const title = sem ? sem.name : 'All Classes';
+    const activeClasses = selId
+      ? classes.filter(c => c.semesterId === selId || (!c.semesterId && semesters.length <= 1))
+      : classes;
     const byDay = {};
-    for (const c of classes) (byDay[c.day] = byDay[c.day] || []).push(c);
+    for (const c of activeClasses) (byDay[c.day] = byDay[c.day] || []).push(c);
     for (const k in byDay) byDay[k].sort((a, b) => a.start.localeCompare(b.start));
     const viewDays = [0,1,2,3,4,5,6];
     const imageDays = [0,1,2,3,4].concat([5,6].filter(d => (byDay[d] || []).length));
 
     return (
       <div className="sched-wrap">
+        <div className="sembar">
+          <button className={'schip' + (!selId ? ' on' : '')} onClick={() => onSelSem(null)}>All</button>
+          {semesters.map(s => <button key={s.id} className={'schip' + (selId === s.id ? ' on' : '')} onClick={() => onSelSem(s.id)}>{s.name}</button>)}
+          <button className="schip newitem" onClick={onNewSem}>ï¼‹ Semester</button>
+        </div>
         <div className="sched-head">
           <span className="mlabel">{title}</span>
-          <button className="link" onClick={onNew}>＋ Add class</button>
+          <span>
+            {sem && <button className="link" onClick={() => onEditSem(sem)} style={{ marginRight: '10px' }}>Edit</button>}
+            <button className="link" onClick={onNew}>ï¼‹ Add class</button>
+          </span>
         </div>
 
-        {classes.length === 0 &&
-          <div className="day-empty">No classes yet — tap “＋ Add class” to build your schedule.</div>}
+        {activeClasses.length === 0 &&
+          <div className="day-empty">
+            {sem ? 'No classes yet in â€œ' + sem.name + 'â€ â€” tap â€œï¼‹ Add classâ€ to build this semesterâ€™s schedule.' : 'No classes yet â€” tap â€œï¼‹ Add classâ€ to build your schedule.'}
+          </div>}
 
-        {classes.length > 0 && viewDays.map(d =>
+        {activeClasses.length > 0 && viewDays.map(d =>
           <div className="sched-day" key={d}>
             <h3>{DAYS[d]}</h3>
             {(byDay[d] || []).length
               ? byDay[d].map(c =>
                   <div className="cls" key={c.id} onClick={() => onEdit(c)} style={{ borderLeftColor: c.color || '#f5f5f7' }}>
-                    <span className="cls-time mono">{c.start}–{c.end}</span>
+                    <span className="cls-time mono">{c.start}â€“{c.end}</span>
                     <span className="cls-sub" style={c.color ? { color: c.color } : undefined}>{c.subject}</span>
                     {c.room && <span className="cls-room">{c.room}</span>}
                   </div>)
-              : <div className="cls-empty">—</div>}
+              : <div className="cls-empty">â€”</div>}
           </div>)}
 
-        {classes.length > 0 &&
+        {activeClasses.length > 0 &&
           <React.Fragment>
             <div className="sched-actions">
-              <button className="btn primary" onClick={() => renderScheduleImage(title, imageDays, byDay)}>⬇ Download schedule image</button>
+              <button className="btn primary" onClick={() => renderScheduleImage(title, imageDays, byDay)}>â¬‡ Download schedule image</button>
             </div>
-            <p className="sched-note">Save the image, then add it with a photo‑widget app (e.g. Widgetsmith) to show your schedule on your home screen.</p>
+            <p className="sched-note">Save the image, then add it with a photoâ€‘widget app (e.g. Widgetsmith) to show your schedule on your home screen.</p>
           </React.Fragment>}
       </div>
     );
   }
 
-  /* ---------- Grades: render averages to a downloadable widget image ---------- */
-  function renderGradesImage(title, rows) {
+    function renderGradesImage(title, rows) {
     const draw = () => {
       const scale = 3, pad = 48, W = 680, headH = 118, rowH = 78, rowGap = 10;
       const bodyH = rows.length ? (rows.length * (rowH + rowGap) - rowGap) : 40;
@@ -2040,7 +2200,8 @@
   }
 
   /* ---------- Grades view: three cortes, each worth a slice of the final ---------- */
-  function Grades({ items, classes, onPatch, onEditItem }) {
+  /* ---------- Grades view: semester scoping, /100 & /20 score, cortes breakdown & lowest-grade highlight ---------- */
+  function Grades({ items, classes, semesters, selId, onSelSem, onNewSem, onEditSem, onPatch, onEditItem }) {
     const [weights, setWeights] = useState(loadCorteW);
     const [showW, setShowW] = useState(false);
     const setW = (i, val) => {
@@ -2051,36 +2212,88 @@
     };
     const wTotal = weights.reduce((a, b) => a + (Number(b) || 0), 0);
 
+    const sem = semesters.find(s => s.id === selId) || null;
+    const semClasses = selId ? classes.filter(c => c.semesterId === selId || (!c.semesterId && semesters.length <= 1)) : classes;
+    const semItems = selId ? items.filter(it => {
+      if (it.semesterId === selId) return true;
+      const matchSubj = semClasses.some(c => c.subject.trim().toLowerCase() === (it.subject || '').trim().toLowerCase());
+      if (matchSubj) return true;
+      if (sem && it.dueDate && it.dueDate >= sem.start && it.dueDate <= sem.end) return true;
+      return false;
+    }) : items;
+
     const subjects = []; const seen = new Set();
-    for (const c of classes) { const k = (c.subject || '').trim().toLowerCase(); if (k && !seen.has(k)) { seen.add(k); subjects.push({ key: k, subject: c.subject.trim(), color: c.color || '' }); } }
+    for (const c of semClasses) { const k = (c.subject || '').trim().toLowerCase(); if (k && !seen.has(k)) { seen.add(k); subjects.push({ key: k, subject: c.subject.trim(), color: c.color || '' }); } }
     const bySubj = {};
-    for (const it of items) { const k = (it.subject || '').trim().toLowerCase(); if (seen.has(k)) (bySubj[k] = bySubj[k] || []).push(it); }
+    for (const it of semItems) { const k = (it.subject || '').trim().toLowerCase(); if (seen.has(k)) (bySubj[k] = bySubj[k] || []).push(it); }
 
     const results = subjects.map(s => ({ ...s, list: bySubj[s.key] || [], g: classGrade(bySubj[s.key] || [], weights) }));
     const currents = results.map(r => r.g.current).filter(a => a !== null);
     const overall = currents.length ? (currents.reduce((a, b) => a + b, 0) / currents.length) : null;
     const widgetRows = results.map(r => ({ subject: r.subject, color: r.color, avg: r.g.current, count: r.list.filter(x => gradeNum(x.grade) !== null).length }));
     const titleFor = (it) => (it.title && it.title.trim()) || it.subject || '(untitled)';
-    const fmt = (n) => n == null ? '—' : n.toFixed(2).replace(/\.?0+$/, '') || '0';
+    const fmt = (n) => n == null ? 'â€”' : n.toFixed(2).replace(/\.?0+$/, '') || '0';
 
-    if (!classes.length) {
-      return <div className="grades-wrap"><div className="day-empty">Create classes in the Schedule tab first. Then every homework and exam for those classes shows up here, sorted into its corte, with a box for its grade.</div></div>;
-    }
+    // Calculate corte averages across all classes in this semester
+    const corteAverages = CORTES.map((c, i) => {
+      const scores = results.map(r => r.g.per[i] ? r.g.per[i].score : null).filter(s => s !== null);
+      return scores.length ? scores.reduce((a, b) => a + b, 0) / scores.length : null;
+    });
 
     return (
       <div className="grades-wrap">
-        <div className="grades-overall">
-          <span className={'gnum' + (overall == null ? ' none' : '')}>{overall == null ? '—' : overall.toFixed(2)}<small> / {GRADE_MAX}</small></span>
-          <span className="glabel">Overall<br/>average</span>
+        <div className="sembar">
+          <button className={'schip' + (!selId ? ' on' : '')} onClick={() => onSelSem(null)}>All</button>
+          {semesters.map(s => <button key={s.id} className={'schip' + (selId === s.id ? ' on' : '')} onClick={() => onSelSem(s.id)}>{s.name}</button>)}
+          <button className="schip newitem" onClick={onNewSem}>ï¼‹ Semester</button>
+        </div>
+
+        {/* Big Overall Card: /100 and /20 + 3 Cortes Breakdown */}
+        <div className="grades-overall-card">
+          <div className="grades-overall-top">
+            <div>
+              <span className="gnum-100">
+                {overall != null ? (overall * 5).toFixed(1) : 'â€”'}
+                <small> / 100</small>
+              </span>
+              <span className="glabel-sub">
+                {overall != null ? overall.toFixed(2) + ' / 20 Average' : 'No grades recorded yet'}
+              </span>
+            </div>
+            <div style={{ textAlign: 'right' }}>
+              <span className="glabel">{sem ? sem.name : 'Overall'}<br/>Average</span>
+              {sem && <button className="link" onClick={() => onEditSem(sem)} style={{ display: 'inline-block', marginTop: '4px' }}>Edit</button>}
+            </div>
+          </div>
+
+          <div className="corte-summary-grid">
+            {CORTES.map((c, i) => {
+              const w = Number(weights[i]) || 0;
+              const avg20 = corteAverages[i];
+              const ptsW = avg20 != null ? (avg20 / 20) * w : null;
+              return (
+                <div className="corte-sum-card" key={c}>
+                  <span className="corte-sum-name">Corte {c} <small>({w}%)</small></span>
+                  <span className="corte-sum-pts">
+                    {ptsW != null ? ptsW.toFixed(1) : 'â€”'}
+                    <small> / {w}</small>
+                  </span>
+                  <span className="corte-sum-20">
+                    {avg20 != null ? avg20.toFixed(2) + ' / 20' : 'â€”'}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
         </div>
 
         <button className="wtoggle" onClick={() => setShowW(v => !v)}>
-          <span>Cortes · {weights.map(w => w + '%').join(' / ')}</span>
-          <span className="wcaret">{showW ? '▴' : '▾'}</span>
+          <span>Cortes Â· {weights.map(w => w + '%').join(' / ')}</span>
+          <span className="wcaret">{showW ? 'â–´' : 'â–¾'}</span>
         </button>
         {showW && (
           <div className="wpanel">
-            <p className="field-help">How much of the final grade each corte is worth. Change it if a class uses different numbers.</p>
+            <p className="field-help">How much of the final grade each corte is worth. Standard Venezuela university model: 15% / 30% / 55%.</p>
             <div className="wrow">
               {CORTES.map((c, i) =>
                 <div className="wcell" key={c}>
@@ -2089,52 +2302,90 @@
                   <span className="wpct">%</span>
                 </div>)}
             </div>
-            {Math.abs(wTotal - 100) > 0.01 && <p className="wwarn">These add up to {fmt(wTotal)}% — they should add up to 100%.</p>}
-            <button className="btn ghost wreset" onClick={() => { setWeights(DEFAULT_CORTE_W.slice()); saveCorteW(DEFAULT_CORTE_W.slice()); }}>Reset to 15 / 35 / 55</button>
+            {Math.abs(wTotal - 100) > 0.01 && <p className="wwarn">These add up to {fmt(wTotal)}% â€” they should add up to 100%.</p>}
+            <button className="btn ghost wreset" onClick={() => { setWeights(DEFAULT_CORTE_W.slice()); saveCorteW(DEFAULT_CORTE_W.slice()); }}>Reset to 15 / 30 / 55</button>
           </div>
         )}
 
-        {results.map(r => (
-          <div className="grade-sec" key={r.key}>
-            <div className="grade-head">
-              <span className="grade-subj" style={r.color ? { color: r.color } : undefined}>{r.subject}</span>
-              <span className="grade-avg">{r.g.current == null ? '—' : r.g.current.toFixed(2)} / {GRADE_MAX}</span>
-            </div>
-            {r.g.current != null && <p className="grade-locked">{r.g.locked.toFixed(2)} of the 20 final points already earned · {fmt(r.g.weighted)}% of the class graded</p>}
-            {CORTES.map((c, i) => {
-              const list = r.list.filter(it => corteOf(it) === c).sort((a, b) => (a.dueDate || '').localeCompare(b.dueDate || ''));
-              const p = r.g.per[i];
-              return (
-                <div className="corte-block" key={c}>
-                  <div className="corte-head">
-                    <span className="corte-name">Corte {c} <em>· {fmt(weights[i])}%</em></span>
-                    <span className="corte-score">{p ? p.score.toFixed(2) + ' / 20' : '—'}{p ? <em> ({fmt(p.got)}/{fmt(p.poss)} pts)</em> : null}</span>
-                  </div>
-                  {list.length ? list.map(it =>
-                    <div className="grade-row" key={it.id}>
-                      <button className="corte-chip" title="Tap to move to another corte"
-                        onClick={() => onPatch(it, { corte: corteOf(it) === 3 ? 1 : corteOf(it) + 1 })}>C{corteOf(it)}</button>
-                      <span className="grade-kind">{it.kind === 'exam' ? 'EXAM' : 'HW'}</span>
-                      <span className="grade-name" onClick={() => onEditItem(it)}>{titleFor(it)}</span>
-                      <NumCell value={it.grade} onCommit={(s) => onPatch(it, { grade: s })} label="Grade" min={0} max={maxOf(it)} allowEmpty />
-                      <span className="grade-slash">/</span>
-                      <NumCell value={maxOf(it)} onCommit={(s) => onPatch(it, { max: parseFloat(s) })} label="Out of" min={0.5} max={1000} cls="max-in" />
-                    </div>) : <div className="day-empty small">Nothing in this corte yet.</div>}
-                </div>
-              );
-            })}
+        {!semClasses.length && (
+          <div className="day-empty">
+            {sem ? 'No classes in â€œ' + sem.name + 'â€ yet. Add classes in the Schedule tab to track your grades here.' : 'Create classes in the Schedule tab first. Then every homework and exam for those classes shows up here, sorted into its corte, with a box for its grade.'}
           </div>
-        ))}
-        <div className="grades-actions">
-          <button className="btn primary" onClick={() => renderGradesImage('Grades', widgetRows)}>⬇ Download grades widget</button>
-        </div>
-        <p className="sched-note">Save the image, then add it with a photo‑widget app (e.g. Widgetsmith) to see your averages on your home screen.</p>
+        )}
+
+        {results.map(r => {
+          // Identify failing grades and lowest grade in this subject
+          const gradedInClass = r.list.filter(it => gradeNum(it.grade) !== null);
+          let minScore20 = null;
+          if (gradedInClass.length > 1) {
+            minScore20 = Math.min(...gradedInClass.map(it => (gradeNum(it.grade) / maxOf(it)) * 20));
+          }
+
+          return (
+            <div className="grade-sec" key={r.key}>
+              <div className="grade-head">
+                <span className="grade-subj" style={r.color ? { color: r.color } : undefined}>{r.subject}</span>
+                <span className="grade-avg">{r.g.current == null ? 'â€”' : (r.g.current * 5).toFixed(1) + ' / 100'}<small style={{ fontSize: '13px', color: 'var(--dim)', marginLeft: '6px' }}>({r.g.current == null ? 'â€”' : r.g.current.toFixed(2)} / 20)</small></span>
+              </div>
+              {r.g.current != null && <p className="grade-locked">{((r.g.locked / 20) * 100).toFixed(1)}% of the total class grade earned so far Â· {fmt(r.g.weighted)}% evaluated</p>}
+              {CORTES.map((c, i) => {
+                const list = r.list.filter(it => corteOf(it) === c).sort((a, b) => (a.dueDate || '').localeCompare(b.dueDate || ''));
+                const p = r.g.per[i];
+                const corteWeight = Number(weights[i]) || 0;
+                const ptsEarnedInCorte = p ? (p.score / 20) * corteWeight : null;
+
+                return (
+                  <div className="corte-block" key={c}>
+                    <div className="corte-head">
+                      <span className="corte-name">Corte {c} <em>Â· {fmt(corteWeight)}%</em></span>
+                      <span className="corte-score">
+                        {ptsEarnedInCorte != null ? ptsEarnedInCorte.toFixed(1) + ' / ' + corteWeight + ' pts' : 'â€”'}
+                        {p ? <em> ({p.score.toFixed(2)} / 20)</em> : null}
+                      </span>
+                    </div>
+                    {list.length ? list.map(it => {
+                      const gVal = gradeNum(it.grade);
+                      const itemScore20 = gVal !== null ? (gVal / maxOf(it)) * 20 : null;
+                      const isFailing = itemScore20 !== null && itemScore20 < 10;
+                      const isLowest = minScore20 !== null && itemScore20 !== null && Math.abs(itemScore20 - minScore20) < 0.01;
+                      const inCls = isFailing ? 'low-fail' : (isLowest ? 'low-warn' : '');
+
+                      return (
+                        <div className="grade-row" key={it.id}>
+                          <button className="corte-chip" title="Tap to move to another corte"
+                            onClick={() => onPatch(it, { corte: corteOf(it) === 3 ? 1 : corteOf(it) + 1 })}>C{corteOf(it)}</button>
+                          <span className="grade-kind">{it.kind === 'exam' ? 'EXAM' : 'HW'}</span>
+                          <span className="grade-name" onClick={() => onEditItem(it)}>
+                            {titleFor(it)}
+                            {isFailing && <span className="grade-badge danger" style={{ marginLeft: '6px' }}>Low &lt;10</span>}
+                            {!isFailing && isLowest && <span className="grade-badge warn" style={{ marginLeft: '6px' }}>Lowest</span>}
+                          </span>
+                          <NumCell value={it.grade} onCommit={(s) => onPatch(it, { grade: s })} label="Grade" min={0} max={maxOf(it)} allowEmpty cls={inCls} />
+                          <span className="grade-slash">/</span>
+                          <NumCell value={maxOf(it)} onCommit={(s) => onPatch(it, { max: parseFloat(s) })} label="Out of" min={0.5} max={1000} cls="max-in" />
+                        </div>
+                      );
+                    }) : <div className="day-empty small">Nothing in this corte yet.</div>}
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })}
+
+        {results.length > 0 && (
+          <React.Fragment>
+            <div className="grades-actions">
+              <button className="btn primary" onClick={() => renderGradesImage(sem ? sem.name + ' - Grades' : 'Grades', widgetRows)}>â¬‡ Download grades widget</button>
+            </div>
+            <p className="sched-note">Save the image, then add it with a photoâ€‘widget app (e.g. Widgetsmith) to see your averages on your home screen.</p>
+          </React.Fragment>
+        )}
       </div>
     );
   }
 
-  /* ---------- Homework module ---------- */
-  function HomeworkApp({ onHome, onBack }) {
+    function HomeworkApp({ onHome, onBack }) {
     const [items, setItems] = useState([]);
     const [attsByHw, setAttsByHw] = useState({});
     const [filter, setFilter] = useState('todo');
@@ -2180,8 +2431,15 @@
     };
 
     const activeItems = items.filter(i => !i.archived);
-    const homeworkItems = activeItems.filter(i => (i.kind || 'homework') !== 'exam');
-    const examItems = activeItems.filter(i => i.kind === 'exam');
+    const semObj = semesters.find(s => s.id === selSem);
+    const semActiveItems = selSem ? activeItems.filter(i => {
+      if (i.semesterId === selSem) return true;
+      if (classes.some(c => c.semesterId === selSem && c.subject.trim().toLowerCase() === (i.subject || '').trim().toLowerCase())) return true;
+      if (semObj && i.dueDate && i.dueDate >= semObj.start && i.dueDate <= semObj.end) return true;
+      return false;
+    }) : activeItems;
+    const homeworkItems = semActiveItems.filter(i => (i.kind || 'homework') !== 'exam');
+    const examItems = semActiveItems.filter(i => i.kind === 'exam');
     const openCount = homeworkItems.filter(i => !i.done).length;
 
     // remember the colour last used for each subject, so new entries match
@@ -2263,6 +2521,12 @@
         <main>
           {mode === 'list' ? (
             <React.Fragment>
+              <div className="sembar">
+                <button className={'schip' + (!selSem ? ' on' : '')} onClick={() => chooseSem(null)}>All</button>
+                {semesters.map(s => <button key={s.id} className={'schip' + (selSem === s.id ? ' on' : '')} onClick={() => chooseSem(s.id)}>{s.name}</button>)}
+                <button className="schip newitem" onClick={() => setSemSheet({})}>ï¼‹ Semester</button>
+              </div>
+            <React.Fragment>
               <div className="toolbar">
                 <input className="search" placeholder="Search homework…" value={search} onChange={e => setSearch(e.target.value)} />
               </div>
@@ -2287,6 +2551,12 @@
             </React.Fragment>
           ) : mode === 'exams' ? (
             <React.Fragment>
+              <div className="sembar">
+                <button className={'schip' + (!selSem ? ' on' : '')} onClick={() => chooseSem(null)}>All</button>
+                {semesters.map(s => <button key={s.id} className={'schip' + (selSem === s.id ? ' on' : '')} onClick={() => chooseSem(s.id)}>{s.name}</button>)}
+                <button className="schip newitem" onClick={() => setSemSheet({})}>ï¼‹ Semester</button>
+              </div>
+            <React.Fragment>
               <div className="sched-head"><span className="mlabel">Exams</span></div>
               {examView.length === 0
                 ? <div className="empty">
@@ -2296,14 +2566,18 @@
                 : examView.map(it => <Card key={it.id} item={it} atts={attsByHw[it.id] || []} onToggle={toggle} onOpen={(i)=>setDetailId(i.id)} />)}
             </React.Fragment>
           ) : mode === 'grades' ? (
-            <Grades items={items} classes={classes} onPatch={patchItem} onEditItem={(i)=>setDetailId(i.id)} />
+            <Grades items={items} classes={classes} semesters={semesters} selId={selSem}
+              onSelSem={chooseSem} onNewSem={() => setSemSheet({})} onEditSem={(s) => setSemSheet({ editing: s })}
+              onPatch={patchItem} onEditItem={(i)=>setDetailId(i.id)} />
           ) : mode === 'cal' ? (
             <Calendar items={activeItems} semesters={semesters} selId={selSem}
               onSelSem={chooseSem} onNewSem={() => setSemSheet({})} onEditSem={(s) => setSemSheet({ editing: s })}
-              onEditItem={(i) => setDetailId(i.id)} onAddForDay={(iso) => setSheet({ date: iso })} />
+              onEditItem={(i) => setDetailId(i.id)} onAddForDay={(iso) => setSheet({ date: iso, prefillSem: selSem })} />
           ) : (
             <Schedule classes={classes} semesters={semesters} selId={selSem}
-              onNew={() => setClassSheet({})} onEdit={(c) => setClassSheet({ editing: c })} />
+              onSelSem={chooseSem} onNewSem={() => setSemSheet({})} onEditSem={(s) => setSemSheet({ editing: s })}
+              onNew={() => setClassSheet({ selSem })} onEdit={(c) => setClassSheet({ editing: c, selSem })} />
+
           )}
         </main>
 
@@ -2335,9 +2609,9 @@
           onDelete={(it) => { setDetailId(null); del(it); }}
           onChanged={load} />}
 
-        {sheet && <Sheet initial={sheet.editing || null} prefillDate={sheet.date || ''} newKind={sheet.newKind || 'homework'} subjectColors={subjectColors} classSubjects={classSubjects} onClose={() => setSheet(null)} onSaved={() => { setSheet(null); load(); }} />}
+        {sheet && <Sheet initial={sheet.editing || null} prefillDate={sheet.date || ''} prefillSem={sheet.prefillSem || selSem || ''} newKind={sheet.newKind || 'homework'} subjectColors={subjectColors} classSubjects={classSubjects} onClose={() => setSheet(null)} onSaved={() => { setSheet(null); load(); }} />}
         {semSheet && <SemesterSheet initial={semSheet.editing || null} onClose={() => setSemSheet(null)} onDelete={deleteSem} onSaved={(id) => { setSemSheet(null); chooseSem(id); load(); }} />}
-        {classSheet && <ClassSheet initial={classSheet.editing || null} subjectColors={subjectColors} onClose={() => setClassSheet(null)} onDelete={deleteClass} onSaved={() => { setClassSheet(null); load(); }} />}
+        {classSheet && <ClassSheet initial={classSheet.editing || null} selSem={classSheet.selSem || selSem || ''} subjectColors={subjectColors} onClose={() => setClassSheet(null)} onDelete={deleteClass} onSaved={() => { setClassSheet(null); load(); }} />}
       </React.Fragment>
     );
   }
@@ -2371,10 +2645,10 @@
           <label>Note</label>
           <textarea value={body} onChange={e => setBody(e.target.value)} placeholder="Write anything…" style={{ minHeight: '180px' }} />
           <label>Colour</label>
-          <div className="swatches">
-            <button type="button" className={'swatch none' + (color ? '' : ' on')} onClick={() => setColor('')} title="Default"></button>
-            {COLORS.map(c => <button type="button" key={c} className={'swatch' + (color === c ? ' on' : '')} style={{ background: c }} onClick={() => setColor(c)}></button>)}
-          </div>
+          <label>Colour</label>
+          <Swatches color={color} onChange={setColor} />
+
+
           {initial &&
             <div className="sheet-actions"><button className="btn danger wide-one" onClick={() => onDelete(initial)}>Delete note</button></div>}
           <div style={{ height: '78px' }}></div>
@@ -2538,10 +2812,10 @@
             <div className="file-btn" onClick={addHead}>＋ Title</div>
           </div>
           <label>Colour</label>
-          <div className="swatches">
-            <button type="button" className={'swatch none' + (color ? '' : ' on')} onClick={() => setColor('')}></button>
-            {COLORS.map(c => <button type="button" key={c} className={'swatch' + (color === c ? ' on' : '')} style={{ background: c }} onClick={() => setColor(c)}></button>)}
-          </div>
+          <label>Colour</label>
+          <Swatches color={color} onChange={setColor} />
+
+
           {initial && <div className="sheet-actions"><button className="btn danger wide-one" onClick={() => onDelete(initial)}>Delete</button></div>}
           <div style={{ height: '78px' }}></div>
         </div>
@@ -2665,10 +2939,10 @@
             {ICONS.map(ic => <button type="button" key={ic} className={'dchip' + (icon === ic ? ' on' : '')} onClick={() => setIcon(ic)} style={{ fontSize: '17px' }}>{ic}</button>)}
           </div>
           <label>Colour</label>
-          <div className="swatches">
-            <button type="button" className={'swatch none' + (color ? '' : ' on')} onClick={() => setColor('')}></button>
-            {COLORS.map(c => <button type="button" key={c} className={'swatch' + (color === c ? ' on' : '')} style={{ background: c }} onClick={() => setColor(c)}></button>)}
-          </div>
+          <label>Colour</label>
+          <Swatches color={color} onChange={setColor} />
+
+
           {initial && <div className="sheet-actions"><button className="btn danger wide-one" onClick={() => onDelete(initial)}>Delete habit</button></div>}
           <div style={{ height: '78px' }}></div>
         </div>
