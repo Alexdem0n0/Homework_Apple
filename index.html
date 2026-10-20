@@ -778,6 +778,124 @@
     .search::placeholder { color: var(--faint); }
     .search:focus { border: none; box-shadow: inset 0 0 0 1.5px rgba(255,255,255,0.55); }
 
+    /* ---------- Smart Dashboard in Hub ---------- */
+    .dash-section {
+      background: var(--panel);
+      border-radius: var(--r-tile);
+      padding: 13px 15px;
+      margin-bottom: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
+      border: 1px solid var(--line);
+      transition: background 0.15s ease;
+    }
+    .dash-section:active {
+      background: var(--panel-2);
+    }
+    .dash-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .dash-label {
+      font-size: 11.5px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      color: var(--dim);
+    }
+    .dash-badge {
+      font-size: 11.5px;
+      color: var(--muted);
+      font-family: var(--font-mono);
+    }
+    .dash-alert {
+      background: rgba(255, 105, 97, 0.16);
+      border: 1px solid rgba(255, 105, 97, 0.35);
+      color: var(--overdue);
+      padding: 7px 11px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
+    }
+    .dash-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 5px 0;
+      border-bottom: 1px solid rgba(84,84,88,0.22);
+    }
+    .dash-item:last-of-type {
+      border-bottom: none;
+    }
+    .dash-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .dash-text {
+      flex: 1;
+      font-size: 14px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: var(--text);
+    }
+    .dash-due {
+      font-size: 12px;
+      color: var(--dim);
+      font-family: var(--font-mono);
+      flex-shrink: 0;
+    }
+    .dash-due.soon { color: var(--soon); }
+    .dash-due.overdue { color: var(--overdue); }
+    .dash-more {
+      font-size: 12px;
+      color: var(--muted);
+      text-align: right;
+      padding-top: 2px;
+    }
+    .dash-habits {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .dash-habit {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      background: var(--panel-2);
+      border: 1.5px solid transparent;
+      font-size: 18px;
+      cursor: pointer;
+      opacity: 0.45;
+      transition: all 0.18s ease;
+      color: var(--text);
+    }
+    .dash-habit.on {
+      opacity: 1;
+      border-color: rgba(255, 255, 255, 0.45);
+      background: rgba(255, 255, 255, 0.12);
+    }
+    .dash-fin-bar {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+      gap: 8px;
+      padding-top: 2px;
+    }
+    .dash-fin-pill {
+      display: block;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text);
+      font-family: var(--font-mono);
+      margin-top: 2px;
+    }
   </style>
 </head>
 <body>
@@ -911,6 +1029,60 @@
   const getAllNotes = () => reqP(store('notes', 'readonly').getAll());
   const putNote = (o) => reqP(store('notes', 'readwrite').put(o));
   const delNoteRec = (id) => reqP(store('notes', 'readwrite').delete(id));
+
+  /* ---------- Universal Backup & Restore across all 11 modules ---------- */
+  async function universalExportData() {
+    const hw = await getAllHW(), atts = await getAllAtts(), sems = await getAllSem(), cls = await getAllClasses();
+    const notes = await getAllNotes();
+    const ideas = await allOf('ideas');
+    const wallets = await allOf('wallets');
+    const transactions = await allOf('transactions');
+    const subs = await allOf('subs');
+    const habits = await allOf('habits');
+    const hlog = await allOf('hlog');
+    const toB64 = (blob) => new Promise(res => { const r = new FileReader(); r.onload = () => res(r.result); r.readAsDataURL(blob); });
+    const attOut = [];
+    for (const a of atts) attOut.push({ id: a.id, homeworkId: a.homeworkId, name: a.name, type: a.type, text: a.text || '', data: await toB64(a.blob) });
+    const lsKeys = ['corte_w', 'fx_bcv', 'fx_par', 'fx_mode', 'fx_auto', 'fx_rate', 'hw_sem'];
+    const lsData = {};
+    for (const k of lsKeys) { const v = localStorage.getItem(k); if (v !== null) lsData[k] = v; }
+    const blob = new Blob([JSON.stringify({
+      version: 3, exportedAt: new Date().toISOString(),
+      homework: hw, attachments: attOut, semesters: sems, classes: cls,
+      notes, ideas, wallets, transactions, subs, habits, hlog,
+      localStorage: lsData
+    })], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = 'phantom-backup-' + new Date().toISOString().slice(0,10) + '.json'; a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  async function universalImportData(file, onDone) {
+    const data = JSON.parse(await file.text());
+    if (!data.homework && !data.notes && !data.ideas && !data.wallets && !data.habits) {
+      alert('That does not look like a Phantom backup.'); return;
+    }
+    let count = 0;
+    for (const h of (data.homework || [])) { await putHW(h); count++; }
+    for (const a of (data.attachments||[])) {
+      const blob = await (await fetch(a.data)).blob();
+      await putAtt({ id: a.id, homeworkId: a.homeworkId, name: a.name, type: a.type, text: a.text || '', blob }); count++;
+    }
+    for (const s of (data.semesters||[])) { await putSem(s); count++; }
+    for (const c of (data.classes||[])) { await putClass(c); count++; }
+    for (const n of (data.notes||[])) { await putNote(n); count++; }
+    for (const i of (data.ideas||[])) { await putIn('ideas', i); count++; }
+    for (const w of (data.wallets||[])) { await putIn('wallets', w); count++; }
+    for (const t of (data.transactions||[])) { await putIn('transactions', t); count++; }
+    for (const s of (data.subs||[])) { await putIn('subs', s); count++; }
+    for (const h of (data.habits||[])) { await putIn('habits', h); count++; }
+    for (const l of (data.hlog||[])) { await putIn('hlog', l); count++; }
+    if (data.localStorage) {
+      for (const [k, v] of Object.entries(data.localStorage)) localStorage.setItem(k, v);
+    }
+    alert('Restore complete! (' + count + ' items restored)');
+    if (onDone) onDone();
+  }
 
   const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
   const isImage = (a) => (a.type || '').startsWith('image/');
@@ -2063,28 +2235,8 @@
       if (confirm('Delete this item and its attachments?')) reallyDelete(it, false);
     };
 
-    async function exportData() {
-      const hw = await getAllHW(), atts = await getAllAtts(), sems = await getAllSem(), cls = await getAllClasses();
-      const toB64 = (blob) => new Promise(res => { const r = new FileReader(); r.onload = () => res(r.result); r.readAsDataURL(blob); });
-      const attOut = [];
-      for (const a of atts) attOut.push({ id: a.id, homeworkId: a.homeworkId, name: a.name, type: a.type, text: a.text || '', data: await toB64(a.blob) });
-      const blob = new Blob([JSON.stringify({ version: 2, exportedAt: new Date().toISOString(), homework: hw, attachments: attOut, semesters: sems, classes: cls })], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a'); a.href = url; a.download = 'homework-backup-' + new Date().toISOString().slice(0,10) + '.json'; a.click();
-      URL.revokeObjectURL(url);
-    }
-    async function importData(file) {
-      const data = JSON.parse(await file.text());
-      if (!data.homework) { alert('That does not look like a homework backup.'); return; }
-      for (const h of data.homework) await putHW(h);
-      for (const a of (data.attachments||[])) {
-        const blob = await (await fetch(a.data)).blob();
-        await putAtt({ id: a.id, homeworkId: a.homeworkId, name: a.name, type: a.type, text: a.text || '', blob });
-      }
-      for (const s of (data.semesters||[])) await putSem(s);
-      for (const c of (data.classes||[])) await putClass(c);
-      alert('Restore complete!'); load();
-    }
+    const exportData = universalExportData;
+    const importData = (file) => universalImportData(file, load);
 
     return (
       <React.Fragment>
@@ -3148,14 +3300,106 @@
   }
 
   /* ---------- Hub (home screen) ---------- */
+  /* ---------- Hub (smart home screen) ---------- */
+  /* ---------- Hub (smart home screen) ---------- */
+  /* ---------- Hub (smart home screen) ---------- */
   function Hub({ onOpen }) {
+    const [hw, setHw] = useState([]);
+    const [habits, setHabits] = useState([]);
+    const [hlog, setHlog] = useState({});
+    const [wallets, setWallets] = useState([]);
+    const [txs, setTxs] = useState([]);
+    const [notes, setNotes] = useState([]);
+    const [ideas, setIdeas] = useState([]);
+    const [loaded, setLoaded] = useState(false);
+    const [quickMenu, setQuickMenu] = useState(false);
+    const importRef = useRef(null);
+
+    const refreshData = useCallback(async () => {
+      try {
+        const d = await openDB();
+        db = d;
+        const [h, hab, hl, w, t, n, id] = await Promise.all([
+          getAllHW(),
+          allOf('habits'),
+          allOf('hlog'),
+          allOf('wallets'),
+          allOf('transactions'),
+          getAllNotes(),
+          allOf('ideas')
+        ]);
+        setHw(h.filter(i => !i.archived));
+        setHabits(hab);
+        const m = {}; for (const r of hl) m[r.key] = true; setHlog(m);
+        setWallets(w);
+        setTxs(t);
+        setNotes(n);
+        setIdeas(id);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoaded(true);
+      }
+    }, []);
+
+    useEffect(() => {
+      refreshData();
+    }, [refreshData]);
+
+    const today = todayIsoStr();
+    const todayD = new Date(); todayD.setHours(0,0,0,0);
+
+    const pendingHw = hw.filter(i => !i.done);
+    const upcoming = pendingHw.filter(i => {
+      if (!i.dueDate) return false;
+      const days = Math.round((new Date(i.dueDate + 'T00:00:00') - todayD) / 86400000);
+      return days >= 0 && days <= 2;
+    }).sort((a, b) => (a.dueDate || '').localeCompare(b.dueDate || ''));
+
+    const overdueCount = pendingHw.filter(i => i.dueDate && new Date(i.dueDate + 'T00:00:00') < todayD).length;
+    const examsPending = pendingHw.filter(i => i.kind === 'exam').length;
+
+    const isDone = (h) => !!hlog[h.id + '|' + today];
+    const habitsDone = habits.filter(isDone).length;
+
+    const toggleHabit = async (h, e) => {
+      e.stopPropagation();
+      const key = h.id + '|' + today;
+      if (hlog[key]) {
+        await delFrom('hlog', key);
+        setHlog(prev => { const n = { ...prev }; delete n[key]; return n; });
+      } else {
+        await putIn('hlog', { key, habitId: h.id, date: today });
+        setHlog(prev => ({ ...prev, [key]: true }));
+      }
+    };
+
+    const fxMode = localStorage.getItem('fx_mode') || 'auto';
+    let autoFx = null;
+    try { autoFx = JSON.parse(localStorage.getItem('fx_auto') || 'null'); } catch(e) {}
+    const manBcv = parseFloat(String(localStorage.getItem('fx_bcv') || '0').replace(',', '.')) || 0;
+    const manPar = parseFloat(String(localStorage.getItem('fx_par') || localStorage.getItem('fx_rate') || '0').replace(',', '.')) || 0;
+    const useAuto = fxMode === 'auto' && autoFx;
+    const bcv = (useAuto && autoFx.bcv) ? autoFx.bcv : manBcv;
+    const par = (useAuto && autoFx.par) ? autoFx.par : manPar;
+    const balOf = (w) => (w.start || 0) + txs.filter(t => t.walletId === w.id)
+      .reduce((s, t) => s + walletDelta(t.amount, modeOf(t), w.cur, bcv, par) * (t.kind === 'in' ? 1 : -1), 0);
+    const totalUSD = wallets.filter(w => w.cur === 'USD').reduce((s, w) => s + balOf(w), 0);
+    const totalBs = wallets.filter(w => w.cur === 'Bs').reduce((s, w) => s + balOf(w), 0);
+    const combined = par > 0 ? totalUSD + totalBs / par : null;
+
+    const hour = new Date().getHours();
+    const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
+    const doingIdeas = ideas.filter(i => i.status === 'doing').length;
+
     const mods = [
-      { id: 'homework', icon: '📚', name: 'Homework', sub: 'Assignments, exams, grades, schedule', ready: true },
-      { id: 'finances', icon: '💵', name: 'Finances', sub: 'Money in $ and Bs, expenses, subs', ready: true },
-      { id: 'notes', icon: '📝', name: 'Notes', sub: 'Quick notes & lists', ready: true },
-      { id: 'ideas', icon: '💡', name: 'Ideas & Projects', sub: 'Ideas, projects, courses, checklists', ready: true },
-      { id: 'health', icon: '❤️', name: 'Health', sub: 'Daily habits & streaks', ready: true },
+      { id: 'homework', icon: '\uD83D\uDCDA', name: 'Homework', sub: pendingHw.length ? pendingHw.length + ' pending' + (examsPending ? ' (' + examsPending + ' exams)' : '') : 'All caught up', ready: true },
+      { id: 'finances', icon: '\uD83D\uDCB5', name: 'Finances', sub: combined != null ? '\u2248 ' + money(combined, 'USD') : (wallets.length ? wallets.length + ' wallets' : 'Track $ & Bs'), ready: true },
+      { id: 'notes', icon: '\uD83D\uDCDD', name: 'Notes', sub: notes.length ? notes.length + ' notes' : 'Quick notes', ready: true },
+      { id: 'ideas', icon: '\uD83D\uDCA1', name: 'Ideas & Projects', sub: doingIdeas ? doingIdeas + ' in progress' : (ideas.length ? ideas.length + ' ideas' : 'Projects & lists'), ready: true },
+      { id: 'health', icon: '\u2764\uFE0F', name: 'Health', sub: habits.length ? habitsDone + '/' + habits.length + ' habits today' : 'Habits & streaks', ready: true },
     ];
+
     return (
       <React.Fragment>
         <header className="hub-header">
@@ -3163,9 +3407,82 @@
         </header>
         <main>
           <section className="hub-hero">
-            <p className="eyebrow">Your life · organized</p>
-            <h1 className="hero-title">Pick a<br/><span className="dim">space.</span></h1>
+            <p className="eyebrow">{greeting} {'\u00B7'} PHANTOM OS</p>
+            <h1 className="hero-title">Your day<br/><span className="dim">at a glance.</span></h1>
           </section>
+
+          {/* Smart Dashboard: Upcoming Deadlines */}
+          {loaded && (upcoming.length > 0 || overdueCount > 0) && (
+            <div className="dash-section" onClick={() => onOpen('homework')} style={{ cursor: 'pointer' }}>
+              <div className="dash-header">
+                <span className="dash-label">{'\u23F0'} Upcoming & Urgent</span>
+                <span className="dash-badge">{pendingHw.length} to do</span>
+              </div>
+              {overdueCount > 0 && (
+                <div className="dash-alert">{'\uD83D\uDD34'} {overdueCount} overdue item{overdueCount > 1 ? 's' : ''}</div>
+              )}
+              {upcoming.slice(0, 3).map(it => {
+                const di = dueInfo(it.dueDate, false);
+                const isExam = it.kind === 'exam';
+                return (
+                  <div key={it.id} className="dash-item">
+                    <span className="dash-dot" style={{ background: it.color || '#f5f5f7' }}></span>
+                    <span className="dash-text">{isExam ? '\uD83D\uDCDD ' : ''}{(it.title && it.title.trim()) || it.subject || '(untitled)'}</span>
+                    <span className={'dash-due ' + di.cls}>{di.label}</span>
+                  </div>
+                );
+              })}
+              {upcoming.length > 3 && (
+                <div className="dash-more">+{upcoming.length - 3} more in Homework {'\u203A'}</div>
+              )}
+            </div>
+          )}
+
+          {/* Smart Dashboard: Habits Today */}
+          {loaded && habits.length > 0 && (
+            <div className="dash-section">
+              <div className="dash-header" onClick={() => onOpen('health')} style={{ cursor: 'pointer' }}>
+                <span className="dash-label">{'\uD83D\uDD25'} Habits {'\u00B7'} {habitsDone}/{habits.length} today</span>
+                <span className="dash-badge" style={{ color: habitsDone === habits.length ? '#5fd08a' : 'inherit' }}>
+                  {habitsDone === habits.length ? '\u2713 Completed' : 'Tap icon to check'}
+                </span>
+              </div>
+              <div className="dash-habits">
+                {habits.map(h => {
+                  const done = isDone(h);
+                  return (
+                    <button
+                      type="button"
+                      key={h.id}
+                      className={'dash-habit' + (done ? ' on' : '')}
+                      style={done && h.color ? { borderColor: h.color, color: h.color, background: 'rgba(255,255,255,0.14)' } : undefined}
+                      onClick={(e) => toggleHabit(h, e)}
+                      title={h.name + (done ? ' (Done)' : '')}
+                    >
+                      {h.icon || '\u2022'}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Smart Dashboard: Money Glance */}
+          {loaded && wallets.length > 0 && (
+            <div className="dash-section" onClick={() => onOpen('finances')} style={{ cursor: 'pointer' }}>
+              <div className="dash-header">
+                <span className="dash-label">{'\uD83D\uDCB5'} Money Balance</span>
+                {par > 0 && <span className="dash-badge">Par: Bs {par.toFixed(2)}</span>}
+              </div>
+              <div className="dash-fin-bar">
+                <div><span className="fin-lab">USD</span><span className="dash-fin-pill">{money(totalUSD, 'USD')}</span></div>
+                <div><span className="fin-lab">Bol{'\u00ED'}vares</span><span className="dash-fin-pill">{money(totalBs, 'Bs')}</span></div>
+                {combined != null && <div><span className="fin-lab">Total Real</span><span className="dash-fin-pill" style={{ color: '#5fd08a' }}>{'\u2248'} {money(combined, 'USD')}</span></div>}
+              </div>
+            </div>
+          )}
+
+          {/* Space navigation cards */}
           <div className="hub-grid">
             {mods.map(m =>
               <button key={m.id} className={'hub-card' + (m.ready ? '' : ' soon')} onClick={() => onOpen(m.id)}>
@@ -3174,13 +3491,35 @@
                 <span className="hub-sub">{m.sub}</span>
               </button>)}
           </div>
+
+          {/* Universal Backup & Restore in Hub */}
+          <div className="footer-tools" style={{ padding: '16px 0 40px' }}>
+            <button className="link" onClick={universalExportData}>{'\u2B07'} Backup All Data</button>
+            <button className="link" onClick={() => importRef.current && importRef.current.click()}>{'\u2B06'} Restore</button>
+            <input ref={importRef} type="file" accept="application/json" hidden onChange={e => {
+              if (e.target.files[0]) universalImportData(e.target.files[0], refreshData);
+              e.target.value = '';
+            }} />
+          </div>
         </main>
+
+        {/* Quick Action Floating Button (+) */}
+        <button className="add" onClick={() => setQuickMenu(true)} aria-label="Quick action">{'\uFF0B'}</button>
+        {quickMenu &&
+          <div className="addmenu-backdrop" onClick={() => setQuickMenu(false)}>
+            <div className="addmenu" onClick={e => e.stopPropagation()}>
+              <button onClick={() => { setQuickMenu(false); onOpen('homework'); }}>{'\uD83D\uDCD3'} New Homework</button>
+              <button onClick={() => { setQuickMenu(false); onOpen('finances'); }}>{'\uD83D\uDCB5'} New Expense / Money</button>
+              <button onClick={() => { setQuickMenu(false); onOpen('notes'); }}>{'\uD83D\uDCDD'} New Note</button>
+              <button onClick={() => { setQuickMenu(false); onOpen('ideas'); }}>{'\uD83D\uDCA1'} New Idea / Project</button>
+              <button onClick={() => { setQuickMenu(false); onOpen('health'); }}>{'\u2764\uFE0F'} New Habit</button>
+            </div>
+          </div>}
       </React.Fragment>
     );
   }
 
-  /* ---------- Root: switches between the hub and each module ---------- */
-  function Root() {
+        function Root() {
     const [stack, setStack] = useState(['hub']);
     const screen = stack[stack.length - 1];
     const go = (s) => setStack(st => [...st, s]);
@@ -3196,6 +3535,11 @@
   }
 
   ReactDOM.createRoot(document.getElementById('root')).render(<Root />);
+
+  /* Ask the browser to keep our data forever (prevents iOS from evicting IndexedDB). */
+  if (navigator.storage && navigator.storage.persist) {
+    navigator.storage.persist().catch(() => {});
+  }
 
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
