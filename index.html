@@ -2200,8 +2200,9 @@
     const asStr = (x) => (x === null || x === undefined || x === '') ? '' : String(x);
     const [v, setV] = useState(asStr(value));
     useEffect(() => { setV(asStr(value)); }, [value]);
-    const commit = () => {
-      let s = v.trim().replace(',', '.');
+    const commit = (e) => {
+      const raw = (e && e.target && e.target.value !== undefined) ? e.target.value : v;
+      let s = String(raw).trim().replace(',', '.');
       if (s !== '') {
         let n = parseFloat(s);
         if (isNaN(n)) s = '';
@@ -2216,7 +2217,9 @@
       setV(s);
     };
     return <input className={'grade-in' + (cls ? ' ' + cls : '')} type="text" inputMode="decimal" value={v}
-      onChange={e => setV(e.target.value)} onBlur={commit} placeholder={placeholder || '—'} aria-label={label} />;
+      onChange={e => setV(e.target.value)} onBlur={commit}
+      onKeyDown={e => { if (e.key === 'Enter') { commit(e); e.target.blur(); } }}
+      placeholder={placeholder || '—'} aria-label={label} />;
   }
 
   /* ---------- Grades view: three cortes, each worth a slice of the final ---------- */
