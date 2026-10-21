@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -1224,7 +1224,7 @@
   <div class="glow"></div>
   <div class="glow two"></div>
   <div class="ticks"><span class="tl"></span><span class="tr"></span></div>
-  <div class="watermark mono">Alex__dem0n</div>
+  <div class="watermark mono">PHANTOM_OS</div>
 
   <div id="root"><div id="boot" class="boot-msg mono">Loading<span class="dots"></span></div></div>
 
@@ -3118,7 +3118,7 @@
                   <input type="text" value={cfUrl} onChange={e => { setCfUrl(e.target.value); saveCf(e.target.value, cfKey, cfAuto); }} placeholder="https://my-phantom-sync.yourname.workers.dev/api/sync" />
 
                   <label>Secret Sync Key / Passphrase</label>
-                  <input type="password" value={cfKey} onChange={e => { setCfKey(e.target.value); saveCf(cfUrl, e.target.value, cfAuto); }} placeholder="e.g. alex_my_secret_2026" />
+                  <input type="password" value={cfKey} onChange={e => { setCfKey(e.target.value); saveCf(cfUrl, e.target.value, cfAuto); }} placeholder="e.g. your_secret_passphrase" />
 
                   <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', marginTop: '12px' }}>
                     <input type="checkbox" checked={cfAuto} onChange={e => { setCfAuto(e.target.checked); saveCf(cfUrl, cfKey, e.target.checked); }} />
@@ -3131,7 +3131,7 @@
                     </button>
                     {showGuide && (
                       <div style={{ marginTop: '8px', padding: '10px', background: 'rgba(255,255,255,0.03)', borderRadius: '8px', fontSize: '12px', lineHeight: '1.5' }}>
-                        <p><strong>Step 1:</strong> Log in at <a href="https://dash.cloudflare.com" target="_blank" style={{ color: 'var(--accent)' }}>dash.cloudflare.com</a> (100% free account).</p>
+                        <p><strong>Step 1:</strong> Log in at <a href="https://dash.cloudflare.com" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)' }}>dash.cloudflare.com</a> (100% free account).</p>
                         <p><strong>Step 2:</strong> Go to <em>Workers &amp; Pages</em> &rarr; <em>Create Worker</em> &rarr; <em>Deploy</em>.</p>
                         <p><strong>Step 3:</strong> Click <em>Edit code</em>, paste the code from <code>cloudflare-worker.js</code> in this repo, and deploy.</p>
                         <p><strong>Step 4:</strong> In Worker <em>Settings &rarr; KV Namespace Bindings</em>, add <code>HOMEWORK_KV</code> bound to a KV namespace.</p>

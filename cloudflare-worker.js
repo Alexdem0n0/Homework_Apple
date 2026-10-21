@@ -13,7 +13,7 @@
  *    - Click "Save and Deploy".
  * 6. Copy your Worker URL (e.g. https://phantom-sync.<your-subdomain>.workers.dev/api/sync)
  *    and paste it into the app's "Cloud Sync" settings on your laptop and your phone.
- * 7. Choose any private passphrase as your Secret Sync Key (e.g. "alex_secret_key_2026").
+ * 7. Choose any private passphrase as your Secret Sync Key (e.g. "my_secure_passphrase").
  *    Done! Both devices will now stay seamlessly in sync.
  */
 
