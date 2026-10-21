@@ -1021,6 +1021,201 @@
       opacity: 0;
       cursor: pointer;
     }
+
+    /* Career Progress & Degree Tracker */
+    .career-card {
+      background: var(--panel);
+      border: 1px solid var(--line-subtle);
+      border-radius: 18px;
+      padding: 16px 18px;
+      margin-bottom: 16px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+    }
+    .career-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 12px;
+    }
+    .career-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .career-sub {
+      font-size: 12px;
+      color: var(--dim);
+      margin-top: 2px;
+    }
+    .career-track {
+      display: grid;
+      grid-template-columns: repeat(10, 1fr);
+      gap: 4px;
+      margin: 12px 0 8px;
+    }
+    .career-node {
+      border: 1px solid var(--line-subtle);
+      background: var(--panel-2);
+      color: var(--dim);
+      border-radius: 8px;
+      padding: 6px 0;
+      text-align: center;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      transition: all 0.2s ease;
+    }
+    .career-node .cnode-num {
+      font-size: 11px;
+      font-weight: 700;
+      font-family: var(--font-mono);
+    }
+    .career-node .cnode-lbl {
+      font-size: 8px;
+      opacity: 0.8;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+    .career-node.done {
+      background: rgba(52, 199, 89, 0.15);
+      border-color: rgba(52, 199, 89, 0.4);
+      color: #34C759;
+    }
+    .career-node.active {
+      background: rgba(0, 122, 255, 0.25);
+      border-color: #007AFF;
+      color: #fff;
+      box-shadow: 0 0 8px rgba(0, 122, 255, 0.4);
+    }
+    .career-node.future {
+      opacity: 0.45;
+    }
+    .career-bar-wrap {
+      height: 8px;
+      background: var(--panel-2);
+      border-radius: 999px;
+      overflow: hidden;
+      margin: 8px 0;
+      border: 1px solid var(--line-subtle);
+    }
+    .career-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #007AFF, #34C759);
+      border-radius: 999px;
+      transition: width 0.4s ease;
+    }
+    .career-stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+      margin-top: 10px;
+    }
+    .career-stat-item {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--line-subtle);
+      border-radius: 10px;
+      padding: 8px 4px;
+      text-align: center;
+    }
+    .career-stat-val {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text);
+      font-family: var(--font-mono);
+      white-space: nowrap;
+    }
+    .career-stat-lbl {
+      font-size: 9px;
+      color: var(--dim);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-top: 2px;
+    }
+    .cls-uc, .subj-uc {
+      display: inline-block;
+      font-size: 11px;
+      font-family: var(--font-mono);
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid var(--line-subtle);
+      border-radius: 5px;
+      padding: 1px 6px;
+      margin-left: 6px;
+      color: var(--dim);
+      font-weight: 600;
+      vertical-align: middle;
+    }
+    .unassigned-banner {
+      background: rgba(255, 159, 10, 0.12);
+      border: 1px solid rgba(255, 159, 10, 0.35);
+      border-radius: 14px;
+      padding: 12px 14px;
+      margin: 12px 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+    }
+    .unassigned-text {
+      font-size: 13px;
+      color: #FFD60A;
+      line-height: 1.35;
+    }
+    .unassigned-text strong {
+      color: #FFF;
+    }
+    select.sem-select {
+      width: 100%;
+      background: var(--panel-2);
+      border: 1px solid var(--line-strong);
+      color: var(--text);
+      font-size: 14px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      margin-bottom: 12px;
+      outline: none;
+      box-sizing: border-box;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+    .schip.edit-sem-btn {
+      color: var(--accent);
+      border-color: rgba(0, 122, 255, 0.4);
+      background: rgba(0, 122, 255, 0.1);
+      font-weight: 600;
+    }
+    .sync-modal-body {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .sync-card {
+      background: var(--panel-2);
+      border: 1px solid var(--line-subtle);
+      border-radius: 12px;
+      padding: 12px 14px;
+    }
+    .sync-card h3 {
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--dim);
+      margin: 0 0 8px 0;
+    }
+    .sync-status {
+      font-size: 13px;
+      color: var(--text);
+      margin-bottom: 8px;
+    }
+    .sync-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
   </style>
 </head>
 <body>
@@ -1156,7 +1351,7 @@
   const delNoteRec = (id) => reqP(store('notes', 'readwrite').delete(id));
 
   /* ---------- Universal Backup & Restore across all 11 modules ---------- */
-  async function universalExportData() {
+  async function getUniversalBackupPayload() {
     const hw = await getAllHW(), atts = await getAllAtts(), sems = await getAllSem(), cls = await getAllClasses();
     const notes = await getAllNotes();
     const ideas = await allOf('ideas');
@@ -1168,33 +1363,31 @@
     const toB64 = (blob) => new Promise(res => { const r = new FileReader(); r.onload = () => res(r.result); r.readAsDataURL(blob); });
     const attOut = [];
     for (const a of atts) attOut.push({ id: a.id, homeworkId: a.homeworkId, name: a.name, type: a.type, text: a.text || '', data: await toB64(a.blob) });
-    const lsKeys = ['corte_w', 'fx_bcv', 'fx_par', 'fx_mode', 'fx_auto', 'fx_rate', 'hw_sem'];
+    const lsKeys = ['corte_w', 'fx_bcv', 'fx_par', 'fx_mode', 'fx_auto', 'fx_rate', 'hw_sem', 'phantom_target_credits', 'phantom_gh_token', 'phantom_gist_id', 'phantom_auto_sync', 'phantom_last_sync'];
     const lsData = {};
     for (const k of lsKeys) { const v = localStorage.getItem(k); if (v !== null) lsData[k] = v; }
-    const blob = new Blob([JSON.stringify({
-      version: 3, exportedAt: new Date().toISOString(),
+    return {
+      version: 4, exportedAt: new Date().toISOString(),
       homework: hw, attachments: attOut, semesters: sems, classes: cls,
       notes, ideas, wallets, transactions, subs, habits, hlog,
       localStorage: lsData
-    })], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a'); a.href = url; a.download = 'phantom-backup-' + new Date().toISOString().slice(0,10) + '.json'; a.click();
-    URL.revokeObjectURL(url);
+    };
   }
 
-  async function universalImportData(file, onDone) {
-    const data = JSON.parse(await file.text());
-    if (!data.homework && !data.notes && !data.ideas && !data.wallets && !data.habits) {
-      alert('That does not look like a Phantom backup.'); return;
+  async function applyUniversalBackupPayload(data, onDone) {
+    if (!data || (!data.homework && !data.notes && !data.ideas && !data.wallets && !data.habits && !data.semesters)) {
+      throw new Error('That does not look like valid backup data.');
     }
     let count = 0;
-    for (const h of (data.homework || [])) { await putHW(h); count++; }
-    for (const a of (data.attachments||[])) {
-      const blob = await (await fetch(a.data)).blob();
-      await putAtt({ id: a.id, homeworkId: a.homeworkId, name: a.name, type: a.type, text: a.text || '', blob }); count++;
-    }
     for (const s of (data.semesters||[])) { await putSem(s); count++; }
     for (const c of (data.classes||[])) { await putClass(c); count++; }
+    for (const h of (data.homework || [])) { await putHW(h); count++; }
+    for (const a of (data.attachments||[])) {
+      if (a.data) {
+        const blob = await (await fetch(a.data)).blob();
+        await putAtt({ id: a.id, homeworkId: a.homeworkId, name: a.name, type: a.type, text: a.text || '', blob }); count++;
+      }
+    }
     for (const n of (data.notes||[])) { await putNote(n); count++; }
     for (const i of (data.ideas||[])) { await putIn('ideas', i); count++; }
     for (const w of (data.wallets||[])) { await putIn('wallets', w); count++; }
@@ -1205,8 +1398,46 @@
     if (data.localStorage) {
       for (const [k, v] of Object.entries(data.localStorage)) localStorage.setItem(k, v);
     }
-    alert('Restore complete! (' + count + ' items restored)');
-    if (onDone) onDone();
+    if (onDone) onDone(count);
+    return count;
+  }
+
+  async function universalExportData() {
+    const payload = await getUniversalBackupPayload();
+    const jsonStr = JSON.stringify(payload, null, 2);
+    const filename = 'phantom-backup-' + new Date().toISOString().slice(0,10) + '.json';
+    const blob = new Blob([jsonStr], { type: 'application/json' });
+
+    // Web Share API support (instant AirDrop / Share Sheet on iOS)
+    if (navigator.canShare) {
+      try {
+        const file = new File([blob], filename, { type: 'application/json' });
+        if (navigator.canShare({ files: [file] })) {
+          await navigator.share({
+            title: 'Phantom OS Backup',
+            text: 'Backup data from ' + new Date().toLocaleDateString(),
+            files: [file]
+          });
+          return;
+        }
+      } catch (e) {
+        if (e.name === 'AbortError') return;
+      }
+    }
+
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = filename; a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  async function universalImportData(file, onDone) {
+    try {
+      const data = JSON.parse(await file.text());
+      const count = await applyUniversalBackupPayload(data, onDone);
+      alert('Restore complete! (' + count + ' items restored)');
+    } catch (err) {
+      alert('Import failed: ' + (err.message || 'Invalid backup file'));
+    }
   }
 
   const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
@@ -1794,12 +2025,14 @@
   }
 
   /* ---------- Semester create / edit sheet ---------- */
-  function SemesterSheet({ initial, onClose, onSaved, onDelete }) {
+  function SemesterSheet({ initial, unassignedCount = 0, onGroupUnassigned, onClose, onSaved, onDelete }) {
     const defStart = () => toIso(new Date());
     const defEnd = () => { const d = new Date(); d.setMonth(d.getMonth() + 4); return toIso(d); };
     const [name, setName] = useState(initial ? initial.name : '');
+    const [number, setNumber] = useState(initial ? (initial.number || 1) : 1);
     const [start, setStart] = useState(initial ? initial.start : defStart());
     const [end, setEnd] = useState(initial ? initial.end : defEnd());
+    const [claimUnassigned, setClaimUnassigned] = useState(!initial && unassignedCount > 0);
     const [err, setErr] = useState('');
 
     async function save() {
@@ -1813,7 +2046,17 @@
       }
       if (e < s) { setErr('End date must be after the start date.'); return; }
       const id = initial ? initial.id : uid();
-      await putSem({ id, name: name.trim(), start: s, end: e, createdAt: initial ? initial.createdAt : Date.now() });
+      await putSem({
+        id,
+        name: name.trim(),
+        number: Number(number) || 1,
+        start: s,
+        end: e,
+        createdAt: initial ? initial.createdAt : Date.now()
+      });
+      if (claimUnassigned && onGroupUnassigned) {
+        await onGroupUnassigned(id);
+      }
       onSaved(id);
     }
     return (
@@ -1825,12 +2068,30 @@
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
             </button>
           </div>
-          <label>Name</label>
-          <input type="text" value={name} onChange={e => { setName(e.target.value); setErr(''); }} placeholder="e.g. Fall 2026 · 1st Semester" autoComplete="off" />
+          <label>Semester Name</label>
+          <input type="text" value={name} onChange={e => { setName(e.target.value); setErr(''); }} placeholder="e.g. 1st Semester · Fall 2026" autoComplete="off" />
+
+          <label>Semester Number (Career 1 to 10)</label>
+          <div className="daypick" style={{ flexWrap: 'wrap' }}>
+            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => (
+              <button type="button" key={n} className={'dchip' + (number === n ? ' on' : '')} onClick={() => setNumber(n)}>
+                Sem {n}
+              </button>
+            ))}
+          </div>
+
           <label>Starts</label>
           <input type="date" value={start} onChange={e => { setStart(e.target.value); setErr(''); }} />
           <label>Ends</label>
           <input type="date" value={end} onChange={e => { setEnd(e.target.value); setErr(''); }} />
+
+          {!initial && unassignedCount > 0 && (
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', marginTop: '12px', fontSize: '13px' }}>
+              <input type="checkbox" checked={claimUnassigned} onChange={e => setClaimUnassigned(e.target.checked)} />
+              <span>Group all {unassignedCount} unassigned classes &amp; homeworks into this semester</span>
+            </label>
+          )}
+
           {err && <p className="form-err">{err}</p>}
           {initial &&
             <div className="sheet-actions">
@@ -1973,6 +2234,7 @@
     const [subject, setSubject] = useState(initial ? initial.subject : '');
     const [color, setColor] = useState(initial ? (initial.color || '') : '');
     const [semId, setSemId] = useState(initial ? (initial.semesterId || selSem || '') : (selSem || ''));
+    const [credits, setCredits] = useState(initial ? (initial.credits ?? '') : '');
     const [day, setDay] = useState(initial ? initial.day : 0);
     const [start, setStart] = useState(initial ? initial.start : '08:00');
     const [end, setEnd] = useState(initial ? initial.end : '09:00');
@@ -1989,7 +2251,19 @@
       if (end <= start) { setErr('End time must be after the start time.'); return; }
       const id = initial ? initial.id : uid();
       const semesterId = semId || '';
-      await putClass({ id, semesterId, subject: subject.trim(), color, day, start, end, room: room.trim(), createdAt: initial ? initial.createdAt : Date.now() });
+      const cNum = credits === '' ? 0 : (parseInt(credits, 10) || 0);
+      await putClass({
+        id,
+        semesterId,
+        subject: subject.trim(),
+        credits: cNum,
+        color,
+        day,
+        start,
+        end,
+        room: room.trim(),
+        createdAt: initial ? initial.createdAt : Date.now()
+      });
       onSaved();
     }
 
@@ -2002,13 +2276,26 @@
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
             </button>
           </div>
+
+          {semesters.length > 0 && (
+            <React.Fragment>
+              <label>Semester</label>
+              <select value={semId} onChange={e => setSemId(e.target.value)} className="sem-select">
+                <option value="">No semester (All / Unassigned)</option>
+                {semesters.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+              </select>
+            </React.Fragment>
+          )}
+
           <label>Subject *</label>
           <input type="text" value={subject} onChange={e => onSub(e.target.value)} placeholder="e.g. Mathematics" autoComplete="off" style={color ? { color } : undefined} />
 
+          <label>Credit Units (UC)</label>
+          <input type="number" min="0" max="25" step="1" value={credits} onChange={e => setCredits(e.target.value)} placeholder="e.g. 3 or 4" />
+          <p className="field-help">Academic credits for this subject (tracks degree graduation progress).</p>
+
           <label>Colour</label>
           <Swatches color={color} onChange={pick} />
-
-
 
           <label>Day</label>
           <div className="daypick">
@@ -2101,12 +2388,13 @@
 
   /* ---------- Schedule view ---------- */
   /* ---------- Schedule view with semester selector & scoping ---------- */
-  function Schedule({ classes, semesters, selId, onSelSem, onNewSem, onEditSem, onEdit, onNew }) {
+  function Schedule({ classes, semesters, selId, onSelSem, onNewSem, onEditSem, onGroupUnassigned, onEdit, onNew }) {
     const sem = semesters.find(s => s.id === selId) || null;
     const title = sem ? sem.name : 'All Classes';
     const activeClasses = selId
       ? classes.filter(c => c.semesterId === selId || (!c.semesterId && semesters.length <= 1))
       : classes;
+    const unassignedCount = classes.filter(c => !c.semesterId).length;
     const byDay = {};
     for (const c of activeClasses) (byDay[c.day] = byDay[c.day] || []).push(c);
     for (const k in byDay) byDay[k].sort((a, b) => a.start.localeCompare(b.start));
@@ -2118,8 +2406,21 @@
         <div className="sembar">
           <button className={'schip' + (!selId ? ' on' : '')} onClick={() => onSelSem(null)}>All</button>
           {semesters.map(s => <button key={s.id} className={'schip' + (selId === s.id ? ' on' : '')} onClick={() => onSelSem(s.id)}>{s.name}</button>)}
+          {sem && <button className="schip edit-sem-btn" onClick={() => onEditSem(sem)} title="Edit semester name">✏️ Edit</button>}
           <button className="schip newitem" onClick={onNewSem}>＋ Semester</button>
         </div>
+
+        {sem && unassignedCount > 0 && onGroupUnassigned && (
+          <div className="unassigned-banner">
+            <div className="unassigned-text">
+              <strong>{unassignedCount} class{unassignedCount === 1 ? '' : 'es'}</strong> currently in “All”
+            </div>
+            <button className="btn primary sm" onClick={() => onGroupUnassigned(sem.id)}>
+              Group into “{sem.name}”
+            </button>
+          </div>
+        )}
+
         <div className="sched-head">
           <span className="mlabel">{title}</span>
           <span>
@@ -2130,7 +2431,7 @@
 
         {activeClasses.length === 0 &&
           <div className="day-empty">
-            {sem ? 'No classes yet in “' + sem.name + '” — tap “＋ Add class” to build this semesterâ€™s schedule.' : 'No classes yet — tap “＋ Add class” to build your schedule.'}
+            {sem ? 'No classes yet in “' + sem.name + '” — tap “＋ Add class” to build this semester’s schedule.' : 'No classes yet — tap “＋ Add class” to build your schedule.'}
           </div>}
 
         {activeClasses.length > 0 && viewDays.map(d =>
@@ -2140,7 +2441,10 @@
               ? byDay[d].map(c =>
                   <div className="cls" key={c.id} onClick={() => onEdit(c)} style={{ borderLeftColor: c.color || '#f5f5f7' }}>
                     <span className="cls-time mono">{c.start}–{c.end}</span>
-                    <span className="cls-sub" style={c.color ? { color: c.color } : undefined}>{c.subject}</span>
+                    <span className="cls-sub" style={c.color ? { color: c.color } : undefined}>
+                      {c.subject}
+                      {c.credits ? <span className="cls-uc">{c.credits} UC</span> : null}
+                    </span>
                     {c.room && <span className="cls-room">{c.room}</span>}
                   </div>)
               : <div className="cls-empty">—</div>}
@@ -2222,8 +2526,127 @@
       placeholder={placeholder || '—'} aria-label={label} />;
   }
 
+  /* ---------- Career Progress & Degree Tracker Card ---------- */
+  function CareerCard({ semesters, classes, items, selSemId, onSelSem }) {
+    const [targetCredits, setTargetCredits] = useState(() => {
+      const v = localStorage.getItem('phantom_target_credits');
+      return (v && !isNaN(parseInt(v, 10))) ? parseInt(v, 10) : 160;
+    });
+
+    const promptTarget = () => {
+      const val = prompt('Enter your university degree total credit units (e.g. 160 or 175):', String(targetCredits));
+      if (val) {
+        const num = parseInt(val, 10);
+        if (num > 0) {
+          setTargetCredits(num);
+          localStorage.setItem('phantom_target_credits', String(num));
+        }
+      }
+    };
+
+    // Deduplicate subjects across classes to count credit units accurately
+    const subjMap = new Map();
+    for (const c of classes) {
+      const k = (c.subject || '').trim().toLowerCase();
+      if (!k) continue;
+      if (!subjMap.has(k) || (c.credits && !subjMap.get(k).credits)) {
+        subjMap.set(k, { subject: c.subject.trim(), credits: c.credits || 0, semesterId: c.semesterId });
+      }
+    }
+
+    const uniqueSubjects = Array.from(subjMap.values());
+    let passedCredits = 0;
+    let enrolledCredits = 0;
+    let passedCount = 0;
+    let totalGradedAvg = 0;
+    let gradedCount = 0;
+
+    for (const s of uniqueSubjects) {
+      const cr = s.credits || 0;
+      enrolledCredits += cr;
+      const subItems = items.filter(it => (it.subject || '').trim().toLowerCase() === s.subject.toLowerCase());
+      const g = classGrade(subItems, DEFAULT_CORTE_W);
+      if (g.current !== null) {
+        totalGradedAvg += g.current;
+        gradedCount++;
+        if (g.current >= 10) {
+          passedCredits += cr;
+          passedCount++;
+        }
+      }
+    }
+
+    const careerPct = Math.min(100, targetCredits > 0 ? (passedCredits / targetCredits) * 100 : 0);
+    const careerGPA20 = gradedCount > 0 ? (totalGradedAvg / gradedCount) : null;
+
+    // Active semester stage
+    const activeSem = semesters.find(s => s.id === selSemId) || semesters[0] || null;
+    const activeSemNum = activeSem && activeSem.number ? activeSem.number : Math.min(10, Math.max(1, semesters.length));
+
+    return (
+      <div className="career-card">
+        <div className="career-head">
+          <div>
+            <div className="career-title">
+              <span>🎓 Degree Progress</span>
+              <span style={{ fontSize: '13px', color: '#34C759', fontWeight: 600 }}>{careerPct.toFixed(1)}%</span>
+            </div>
+            <div className="career-sub">10 Semesters · Venezuelan University Scale</div>
+          </div>
+          <button className="link" onClick={promptTarget} style={{ fontSize: '11px' }}>
+            Target: {targetCredits} UC ✏️
+          </button>
+        </div>
+
+        {/* 10-Semester Track */}
+        <div className="career-track">
+          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => {
+            const semForN = semesters.find(s => s.number === n);
+            const isCur = activeSem ? (activeSem.number === n) : (n === activeSemNum);
+            const isPast = n < activeSemNum;
+            const cls = isCur ? 'active' : (isPast ? 'done' : 'future');
+            return (
+              <button key={n} type="button"
+                className={'career-node ' + cls}
+                onClick={() => { if (semForN) onSelSem(semForN.id); }}
+                title={semForN ? semForN.name : ('Semester ' + n)}>
+                <span className="cnode-num">{n}</span>
+                <span className="cnode-lbl">{isPast ? '✓' : (isCur ? 'NOW' : 'SEM')}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Progress Bar */}
+        <div className="career-bar-wrap">
+          <div className="career-bar-fill" style={{ width: Math.max(2, careerPct) + '%' }}></div>
+        </div>
+
+        {/* Stats Grid */}
+        <div className="career-stats">
+          <div className="career-stat-item">
+            <div className="career-stat-val">{passedCredits} / {targetCredits}</div>
+            <div className="career-stat-lbl">Passed UC</div>
+          </div>
+          <div className="career-stat-item">
+            <div className="career-stat-val">{careerPct.toFixed(1)}%</div>
+            <div className="career-stat-lbl">Career %</div>
+          </div>
+          <div className="career-stat-item">
+            <div className="career-stat-val">Sem {activeSemNum} / 10</div>
+            <div className="career-stat-lbl">Current Stage</div>
+          </div>
+          <div className="career-stat-item">
+            <div className="career-stat-val">{careerGPA20 != null ? careerGPA20.toFixed(2) : '—'}</div>
+            <div className="career-stat-lbl">Career GPA</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   /* ---------- Grades view: three cortes, each worth a slice of the final ---------- */
-  /* ---------- Grades view: semester scoping, /100 & /20 score, cortes breakdown & lowest-grade highlight ---------- */
+  /* ---------- Grades view: semester scoping, /100 & /20 score, cortes breakdown & single lowest-grade highlight ---------- */
   function Grades({ items, classes, semesters, selId, onSelSem, onNewSem, onEditSem, onPatch, onEditItem }) {
     const [weights, setWeights] = useState(loadCorteW);
     const [showW, setShowW] = useState(false);
@@ -2246,7 +2669,13 @@
     }) : items;
 
     const subjects = []; const seen = new Set();
-    for (const c of semClasses) { const k = (c.subject || '').trim().toLowerCase(); if (k && !seen.has(k)) { seen.add(k); subjects.push({ key: k, subject: c.subject.trim(), color: c.color || '' }); } }
+    for (const c of semClasses) {
+      const k = (c.subject || '').trim().toLowerCase();
+      if (k && !seen.has(k)) {
+        seen.add(k);
+        subjects.push({ key: k, subject: c.subject.trim(), color: c.color || '', credits: c.credits || 0 });
+      }
+    }
     const bySubj = {};
     for (const it of semItems) { const k = (it.subject || '').trim().toLowerCase(); if (seen.has(k)) (bySubj[k] = bySubj[k] || []).push(it); }
 
@@ -2256,6 +2685,23 @@
     const widgetRows = results.map(r => ({ subject: r.subject, color: r.color, avg: r.g.current, count: r.list.filter(x => gradeNum(x.grade) !== null).length }));
     const titleFor = (it) => (it.title && it.title.trim()) || it.subject || '(untitled)';
     const fmt = (n) => n == null ? '—' : n.toFixed(2).replace(/\.?0+$/, '') || '0';
+
+    // Calculate single lowest grade across ALL classes in view
+    const allGradedItems = [];
+    for (const r of results) {
+      for (const it of r.list) {
+        const g = gradeNum(it.grade);
+        if (g !== null) {
+          const s20 = (g / maxOf(it)) * 20;
+          allGradedItems.push({ id: it.id, s20, subject: r.subject });
+        }
+      }
+    }
+    let lowestItemId = null;
+    if (allGradedItems.length > 0) {
+      allGradedItems.sort((a, b) => a.s20 - b.s20);
+      lowestItemId = allGradedItems[0].id;
+    }
 
     // Calculate corte averages across all classes in this semester
     const corteAverages = CORTES.map((c, i) => {
@@ -2268,8 +2714,12 @@
         <div className="sembar">
           <button className={'schip' + (!selId ? ' on' : '')} onClick={() => onSelSem(null)}>All</button>
           {semesters.map(s => <button key={s.id} className={'schip' + (selId === s.id ? ' on' : '')} onClick={() => onSelSem(s.id)}>{s.name}</button>)}
+          {sem && <button className="schip edit-sem-btn" onClick={() => onEditSem(sem)} title="Edit semester name">✏️ Edit</button>}
           <button className="schip newitem" onClick={onNewSem}>＋ Semester</button>
         </div>
+
+        {/* Career Degree Tracker: 10 Semesters & Credit Units */}
+        <CareerCard semesters={semesters} classes={classes} items={items} selSemId={selId} onSelSem={onSelSem} />
 
         {/* Big Overall Card: /100 and /20 + 3 Cortes Breakdown */}
         <div className="grades-overall-card">
@@ -2337,17 +2787,13 @@
         )}
 
         {results.map(r => {
-          // Identify failing grades and lowest grade in this subject
-          const gradedInClass = r.list.filter(it => gradeNum(it.grade) !== null);
-          let minScore20 = null;
-          if (gradedInClass.length > 1) {
-            minScore20 = Math.min(...gradedInClass.map(it => (gradeNum(it.grade) / maxOf(it)) * 20));
-          }
-
           return (
             <div className="grade-sec" key={r.key}>
               <div className="grade-head">
-                <span className="grade-subj" style={r.color ? { color: r.color } : undefined}>{r.subject}</span>
+                <span className="grade-subj" style={r.color ? { color: r.color } : undefined}>
+                  {r.subject}
+                  {r.credits ? <span className="subj-uc">{r.credits} UC</span> : null}
+                </span>
                 <span className="grade-avg">{r.g.current == null ? '—' : (r.g.current * 5).toFixed(1) + ' / 100'}<small style={{ fontSize: '13px', color: 'var(--dim)', marginLeft: '6px' }}>({r.g.current == null ? '—' : r.g.current.toFixed(2)} / 20)</small></span>
               </div>
               {r.g.current != null && <p className="grade-locked">{((r.g.locked / 20) * 100).toFixed(1)}% of the total class grade earned so far · {fmt(r.g.weighted)}% evaluated</p>}
@@ -2370,7 +2816,7 @@
                       const gVal = gradeNum(it.grade);
                       const itemScore20 = gVal !== null ? (gVal / maxOf(it)) * 20 : null;
                       const isFailing = itemScore20 !== null && itemScore20 < 10;
-                      const isLowest = minScore20 !== null && itemScore20 !== null && Math.abs(itemScore20 - minScore20) < 0.01;
+                      const isLowest = it.id === lowestItemId;
                       const inCls = isFailing ? 'low-fail' : (isLowest ? 'low-warn' : '');
 
                       return (
@@ -2381,7 +2827,7 @@
                           <span className="grade-name" onClick={() => onEditItem(it)}>
                             {titleFor(it)}
                             {isFailing && <span className="grade-badge danger" style={{ marginLeft: '6px' }}>Low &lt;10</span>}
-                            {!isFailing && isLowest && <span className="grade-badge warn" style={{ marginLeft: '6px' }}>Lowest</span>}
+                            {!isFailing && isLowest && <span className="grade-badge warn" style={{ marginLeft: '6px' }}>Lowest Grade</span>}
                           </span>
                           <NumCell value={it.grade} onCommit={(s) => onPatch(it, { grade: s })} label="Grade" min={0} max={maxOf(it)} allowEmpty cls={inCls} />
                           <span className="grade-slash">/</span>
@@ -2408,7 +2854,356 @@
     );
   }
 
-    function HomeworkApp({ onHome, onBack }) {
+  
+  /* ---------- Cloud Sync & Backup Sheet (Cloudflare + GitHub) ---------- */
+  async function syncWithCloudflare({ workerUrl, syncKey, mode = 'sync' }) {
+    if (!workerUrl || !syncKey) throw new Error('Please enter your Cloudflare Worker URL and Secret Key.');
+    let clean = workerUrl.trim().replace(/\/+$/, '');
+    if (!clean.includes('/api/sync') && !clean.endsWith('sync')) {
+      clean = clean + '/api/sync';
+    }
+    const targetUrl = clean + (clean.includes('?') ? '&' : '?') + 'key=' + encodeURIComponent(syncKey.trim());
+
+    if (mode === 'push') {
+      const payload = await getUniversalBackupPayload();
+      const res = await fetch(targetUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (!res.ok) throw new Error('Cloudflare error: ' + res.status + ' ' + (await res.text()));
+      return { action: 'pushed', count: (payload.homework || []).length };
+    }
+
+    if (mode === 'pull') {
+      const res = await fetch(targetUrl, { method: 'GET' });
+      if (!res.ok) throw new Error('Cloudflare error: ' + res.status + ' ' + (await res.text()));
+      const remoteData = await res.json();
+      const payload = remoteData.data || remoteData;
+      const count = await applyUniversalBackupPayload(payload);
+      return { action: 'pulled', count };
+    }
+
+    // mode === 'sync' (2-way smart sync)
+    let remoteData = null;
+    const getRes = await fetch(targetUrl, { method: 'GET' });
+    if (getRes.status === 404) {
+      return await syncWithCloudflare({ workerUrl, syncKey, mode: 'push' });
+    }
+    if (!getRes.ok) throw new Error('Cloudflare error: ' + getRes.status);
+    remoteData = await getRes.json();
+    const payload = remoteData.data || remoteData;
+
+    const localPayload = await getUniversalBackupPayload();
+    const remoteDate = new Date(payload.exportedAt || 0).getTime();
+    const localDate = new Date(localPayload.exportedAt || 0).getTime();
+    const lastSyncDate = new Date(localStorage.getItem('phantom_cf_last_sync') || 0).getTime();
+
+    if (remoteDate > lastSyncDate && remoteDate > localDate) {
+      const count = await applyUniversalBackupPayload(payload);
+      return { action: 'pulled', count };
+    } else {
+      const postRes = await fetch(targetUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(localPayload)
+      });
+      if (!postRes.ok) throw new Error('Cloudflare push error: ' + postRes.status);
+      return { action: 'pushed', count: (localPayload.homework || []).length };
+    }
+  }
+
+  function SyncSheet({ onClose, onReload }) {
+    // Cloudflare state
+    const [cfUrl, setCfUrl] = useState(() => localStorage.getItem('phantom_cf_url') || '');
+    const [cfKey, setCfKey] = useState(() => localStorage.getItem('phantom_cf_key') || '');
+    const [cfAuto, setCfAuto] = useState(() => localStorage.getItem('phantom_cf_auto') === 'true');
+    const [cfLastSync, setCfLastSync] = useState(() => localStorage.getItem('phantom_cf_last_sync') || '');
+    const [showGuide, setShowGuide] = useState(false);
+
+    // GitHub Gist state
+    const [token, setToken] = useState(() => localStorage.getItem('phantom_gh_token') || '');
+    const [gistId, setGistId] = useState(() => localStorage.getItem('phantom_gist_id') || '');
+    const [ghLastSync, setGhLastSync] = useState(() => localStorage.getItem('phantom_last_sync') || '');
+    const [autoSync, setAutoSync] = useState(() => localStorage.getItem('phantom_auto_sync') === 'true');
+
+    const [tab, setTab] = useState('cloudflare'); // 'cloudflare' | 'github' | 'file'
+    const [busy, setBusy] = useState(false);
+    const [msg, setMsg] = useState('');
+    const fileRef = useRef(null);
+
+    const saveCf = (u, k, a) => {
+      localStorage.setItem('phantom_cf_url', u.trim());
+      localStorage.setItem('phantom_cf_key', k.trim());
+      localStorage.setItem('phantom_cf_auto', a ? 'true' : 'false');
+    };
+
+    const saveGh = (t, g, a) => {
+      localStorage.setItem('phantom_gh_token', t.trim());
+      localStorage.setItem('phantom_gist_id', g.trim());
+      localStorage.setItem('phantom_auto_sync', a ? 'true' : 'false');
+    };
+
+    const handleCfAction = async (actionType) => {
+      if (!cfUrl.trim() || !cfKey.trim()) {
+        alert('Please enter your Cloudflare Worker URL and Secret Key.');
+        return;
+      }
+      setBusy(true); setMsg('Connecting to Cloudflare...');
+      try {
+        const res = await syncWithCloudflare({ workerUrl: cfUrl, syncKey: cfKey, mode: actionType });
+        const now = new Date().toISOString();
+        setCfLastSync(now); localStorage.setItem('phantom_cf_last_sync', now);
+        saveCf(cfUrl, cfKey, cfAuto);
+        if (res.action === 'pulled') {
+          setMsg('Successfully downloaded ' + res.count + ' items from Cloudflare!');
+          alert('Sync complete: newer cloud data restored!');
+        } else {
+          setMsg('Successfully uploaded data to Cloudflare at ' + new Date().toLocaleTimeString());
+          alert('Saved to Cloudflare cloud successfully!');
+        }
+        if (onReload) onReload();
+      } catch (err) {
+        alert('Cloudflare Sync Error: ' + err.message);
+        setMsg('Error: ' + err.message);
+      } finally {
+        setBusy(false);
+      }
+    };
+
+    const handleCreateGist = async () => {
+      if (!token.trim()) { alert('Please enter your GitHub Personal Access Token (PAT) first.'); return; }
+      setBusy(true); setMsg('Creating private Gist on GitHub...');
+      try {
+        const payload = await getUniversalBackupPayload();
+        const res = await fetch('https://api.github.com/gists', {
+          method: 'POST',
+          headers: {
+            'Authorization': 'Bearer ' + token.trim(),
+            'Accept': 'application/vnd.github.v3+json',
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            description: 'Phantom OS Universal Cloud Backup',
+            public: false,
+            files: {
+              'phantom_os_backup.json': { content: JSON.stringify(payload, null, 2) }
+            }
+          })
+        });
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.message || ('GitHub API error: ' + res.status));
+        }
+        const created = await res.json();
+        setGistId(created.id);
+        saveGh(token, created.id, autoSync);
+        const now = new Date().toISOString();
+        setGhLastSync(now); localStorage.setItem('phantom_last_sync', now);
+        setMsg('Private Gist created successfully! ID: ' + created.id);
+        alert('Cloud backup created successfully!');
+      } catch (err) {
+        alert('Could not create Gist: ' + err.message);
+        setMsg('Error: ' + err.message);
+      } finally {
+        setBusy(false);
+      }
+    };
+
+    const handlePushGh = async () => {
+      if (!token.trim() || !gistId.trim()) { alert('Please enter your GitHub Token and Gist ID.'); return; }
+      setBusy(true); setMsg('Uploading local database to GitHub Gist...');
+      try {
+        const payload = await getUniversalBackupPayload();
+        const res = await fetch('https://api.github.com/gists/' + gistId.trim(), {
+          method: 'PATCH',
+          headers: {
+            'Authorization': 'Bearer ' + token.trim(),
+            'Accept': 'application/vnd.github.v3+json',
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            description: 'Phantom OS Universal Cloud Backup',
+            files: {
+              'phantom_os_backup.json': { content: JSON.stringify(payload, null, 2) }
+            }
+          })
+        });
+        if (!res.ok) throw new Error('GitHub API error ' + res.status);
+        const now = new Date().toISOString();
+        setGhLastSync(now); localStorage.setItem('phantom_last_sync', now);
+        saveGh(token, gistId, autoSync);
+        setMsg('Pushed to GitHub at ' + new Date().toLocaleTimeString());
+        alert('Pushed current data to GitHub cloud!');
+      } catch (err) {
+        alert('Push failed: ' + err.message);
+        setMsg('Error: ' + err.message);
+      } finally {
+        setBusy(false);
+      }
+    };
+
+    const handlePullGh = async () => {
+      if (!token.trim() || !gistId.trim()) { alert('Please enter your GitHub Token and Gist ID.'); return; }
+      setBusy(true); setMsg('Downloading from GitHub Gist...');
+      try {
+        const res = await fetch('https://api.github.com/gists/' + gistId.trim(), {
+          headers: {
+            'Authorization': 'Bearer ' + token.trim(),
+            'Accept': 'application/vnd.github.v3+json'
+          }
+        });
+        if (!res.ok) throw new Error('GitHub API error ' + res.status);
+        const gist = await res.json();
+        const fileObj = gist.files && gist.files['phantom_os_backup.json'];
+        if (!fileObj || !fileObj.content) throw new Error('No phantom_os_backup.json found in this Gist.');
+        const remoteData = JSON.parse(fileObj.content);
+        const count = await applyUniversalBackupPayload(remoteData, onReload);
+        const now = new Date().toISOString();
+        setGhLastSync(now); localStorage.setItem('phantom_last_sync', now);
+        saveGh(token, gistId, autoSync);
+        setMsg('Pulled ' + count + ' items from GitHub at ' + new Date().toLocaleTimeString());
+        alert('Sync complete! ' + count + ' items restored from GitHub cloud.');
+      } catch (err) {
+        alert('Pull failed: ' + err.message);
+        setMsg('Error: ' + err.message);
+      } finally {
+        setBusy(false);
+      }
+    };
+
+    return (
+      <div className="backdrop" onClick={(e) => { if (e.target.classList.contains('backdrop')) onClose(); }}>
+        <div className="sheet" style={{ maxHeight: '90vh', overflowY: 'auto' }}>
+          <div className="sheet-top">
+            <h2>Cross-Device Cloud Sync</h2>
+            <button className="sheet-x" onClick={onClose} aria-label="Close">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+            </button>
+          </div>
+
+          <div className="viewtabs" style={{ margin: '8px 0 16px 0', borderBottom: '1px solid var(--line-subtle)' }}>
+            <button className={tab === 'cloudflare' ? 'active' : ''} onClick={() => setTab('cloudflare')}>☁️ Cloudflare</button>
+            <button className={tab === 'github' ? 'active' : ''} onClick={() => setTab('github')}>🐙 GitHub</button>
+            <button className={tab === 'file' ? 'active' : ''} onClick={() => setTab('file')}>📲 AirDrop / File</button>
+          </div>
+
+          <div className="sync-modal-body">
+            {tab === 'cloudflare' && (
+              <React.Fragment>
+                <div className="sync-card">
+                  <h3>Cloudflare Worker (Laptop ⇄ Phone)</h3>
+                  <div className="sync-status">
+                    {cfLastSync ? ('Last synced: ' + new Date(cfLastSync).toLocaleString()) : 'Not synced yet'}
+                  </div>
+                  {msg && <p style={{ fontSize: '12px', color: 'var(--accent)', margin: '4px 0 8px' }}>{msg}</p>}
+                  <div className="sync-row">
+                    <button className="btn primary sm" disabled={busy || !cfUrl || !cfKey} onClick={() => handleCfAction('sync')}>
+                      🔄 Sync Now
+                    </button>
+                    <button className="btn sm" disabled={busy || !cfUrl || !cfKey} onClick={() => handleCfAction('push')}>
+                      ⬆ Push to Cloud
+                    </button>
+                    <button className="btn sm" disabled={busy || !cfUrl || !cfKey} onClick={() => handleCfAction('pull')}>
+                      ⬇ Pull to Device
+                    </button>
+                  </div>
+                </div>
+
+                <div className="sync-card">
+                  <h3>Cloudflare Settings</h3>
+                  <p className="field-help" style={{ margin: '0 0 8px' }}>Enter the same Worker URL and Secret Key on your laptop and phone to keep them privately synced in real-time.</p>
+
+                  <label>Cloudflare Worker URL</label>
+                  <input type="text" value={cfUrl} onChange={e => { setCfUrl(e.target.value); saveCf(e.target.value, cfKey, cfAuto); }} placeholder="https://my-phantom-sync.yourname.workers.dev/api/sync" />
+
+                  <label>Secret Sync Key / Passphrase</label>
+                  <input type="password" value={cfKey} onChange={e => { setCfKey(e.target.value); saveCf(cfUrl, e.target.value, cfAuto); }} placeholder="e.g. alex_my_secret_2026" />
+
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', marginTop: '12px' }}>
+                    <input type="checkbox" checked={cfAuto} onChange={e => { setCfAuto(e.target.checked); saveCf(cfUrl, cfKey, e.target.checked); }} />
+                    <span style={{ fontSize: '13px' }}>Sync automatically on app launch</span>
+                  </label>
+
+                  <div style={{ marginTop: '14px' }}>
+                    <button type="button" className="link" onClick={() => setShowGuide(g => !g)} style={{ fontSize: '12px' }}>
+                      {showGuide ? 'Hide Cloudflare 2-minute setup guide ▴' : 'How to set up your free Cloudflare Worker ▾'}
+                    </button>
+                    {showGuide && (
+                      <div style={{ marginTop: '8px', padding: '10px', background: 'rgba(255,255,255,0.03)', borderRadius: '8px', fontSize: '12px', lineHeight: '1.5' }}>
+                        <p><strong>Step 1:</strong> Log in at <a href="https://dash.cloudflare.com" target="_blank" style={{ color: 'var(--accent)' }}>dash.cloudflare.com</a> (100% free account).</p>
+                        <p><strong>Step 2:</strong> Go to <em>Workers &amp; Pages</em> &rarr; <em>Create Worker</em> &rarr; <em>Deploy</em>.</p>
+                        <p><strong>Step 3:</strong> Click <em>Edit code</em>, paste the code from <code>cloudflare-worker.js</code> in this repo, and deploy.</p>
+                        <p><strong>Step 4:</strong> In Worker <em>Settings &rarr; KV Namespace Bindings</em>, add <code>HOMEWORK_KV</code> bound to a KV namespace.</p>
+                        <p><strong>Step 5:</strong> Copy your worker URL, paste it above, pick any passphrase, and you are all set!</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </React.Fragment>
+            )}
+
+            {tab === 'github' && (
+              <React.Fragment>
+                <div className="sync-card">
+                  <h3>GitHub Gist Status</h3>
+                  <div className="sync-status">
+                    {ghLastSync ? ('Last synced: ' + new Date(ghLastSync).toLocaleString()) : 'Not synced yet'}
+                  </div>
+                  {msg && <p style={{ fontSize: '12px', color: 'var(--accent)', margin: '4px 0 8px' }}>{msg}</p>}
+                  <div className="sync-row">
+                    <button className="btn primary sm" disabled={busy || !token || !gistId} onClick={handlePushGh}>
+                      ⬆ Push to Gist
+                    </button>
+                    <button className="btn sm" disabled={busy || !token || !gistId} onClick={handlePullGh}>
+                      ⬇ Pull from Gist
+                    </button>
+                  </div>
+                </div>
+
+                <div className="sync-card">
+                  <h3>GitHub Configuration</h3>
+                  <label>GitHub Personal Access Token (with 'gist' scope)</label>
+                  <input type="password" value={token} onChange={e => { setToken(e.target.value); saveGh(e.target.value, gistId, autoSync); }} placeholder="ghp_xxxxxxxxxxxx" />
+
+                  <label>Gist ID</label>
+                  <input type="text" value={gistId} onChange={e => { setGistId(e.target.value); saveGh(token, e.target.value, autoSync); }} placeholder="e.g. 7f8a9b..." />
+
+                  <div style={{ marginTop: '10px' }}>
+                    <button className="btn sm ghost" disabled={busy || !token.trim()} onClick={handleCreateGist}>
+                      ＋ Create New Backup Gist
+                    </button>
+                  </div>
+                </div>
+              </React.Fragment>
+            )}
+
+            {tab === 'file' && (
+              <div className="sync-card">
+                <h3>AirDrop &amp; Direct File Transfer</h3>
+                <p className="field-help" style={{ margin: '0 0 10px' }}>Instantly AirDrop your full database to your phone or PC, or export a backup JSON file.</p>
+                <div className="sync-row">
+                  <button className="btn sm primary" onClick={universalExportData}>
+                    📲 AirDrop / Share Backup
+                  </button>
+                  <button className="btn sm" onClick={() => fileRef.current && fileRef.current.click()}>
+                    📁 Import JSON
+                  </button>
+                  <input ref={fileRef} type="file" accept="application/json" hidden onChange={e => {
+                    if (e.target.files[0]) universalImportData(e.target.files[0], onReload);
+                    e.target.value = '';
+                  }} />
+                </div>
+              </div>
+            )}
+          </div>
+          <div style={{ height: '30px' }}></div>
+        </div>
+      </div>
+    );
+  }
+
+  function HomeworkApp({ onHome, onBack }) {
     const [items, setItems] = useState([]);
     const [attsByHw, setAttsByHw] = useState({});
     const [filter, setFilter] = useState('todo');
@@ -2423,6 +3218,7 @@
     const [classSheet, setClassSheet] = useState(null);
     const [delTarget, setDelTarget] = useState(null);
     const [detailId, setDetailId] = useState(null);
+    const [syncOpen, setSyncOpen] = useState(false);
     const urlsRef = useRef([]);
     const importRef = useRef(null);
 
@@ -2439,7 +3235,23 @@
       setClasses(cls);
     }, []);
 
-    useEffect(() => { openDB().then(d => { db = d; load(); }); }, []);
+    useEffect(() => {
+      openDB().then(d => {
+        db = d;
+        load();
+        // Quiet background Cloudflare auto-sync
+        const cfAuto = localStorage.getItem('phantom_cf_auto') === 'true';
+        const cfUrl = localStorage.getItem('phantom_cf_url');
+        const cfKey = localStorage.getItem('phantom_cf_key');
+        if (cfAuto && cfUrl && cfKey) {
+          syncWithCloudflare({ workerUrl: cfUrl, syncKey: cfKey, mode: 'sync' })
+            .then(res => {
+              if (res && res.action === 'pulled') load();
+            })
+            .catch(e => console.warn('Background Cloudflare auto-sync skipped:', e));
+        }
+      });
+    }, []);
 
     const chooseSem = (id) => { setSelSem(id); try { if (id) localStorage.setItem('hw_sem', id); else localStorage.removeItem('hw_sem'); } catch (e) {} };
     const deleteSem = async (s) => {
@@ -2451,6 +3263,23 @@
     const deleteClass = async (c) => {
       if (!confirm('Delete this class?')) return;
       await delClassRec(c.id); setClassSheet(null); load();
+    };
+
+    const unassignedClasses = classes.filter(c => !c.semesterId);
+    const unassignedHW = items.filter(i => !i.semesterId);
+    const totalUnassigned = unassignedClasses.length + unassignedHW.length;
+
+    const groupIntoSemester = async (semId) => {
+      if (!semId) return;
+      let count = 0;
+      for (const c of classes) {
+        if (!c.semesterId) { await putClass({ ...c, semesterId: semId }); count++; }
+      }
+      for (const it of items) {
+        if (!it.semesterId) { await putHW({ ...it, semesterId: semId }); count++; }
+      }
+      await load();
+      alert('Grouped ' + count + ' items into semester!');
     };
 
     const activeItems = items.filter(i => !i.archived);
@@ -2548,8 +3377,21 @@
               <div className="sembar">
                 <button className={'schip' + (!selSem ? ' on' : '')} onClick={() => chooseSem(null)}>All</button>
                 {semesters.map(s => <button key={s.id} className={'schip' + (selSem === s.id ? ' on' : '')} onClick={() => chooseSem(s.id)}>{s.name}</button>)}
+                {semObj && <button className="schip edit-sem-btn" onClick={() => setSemSheet({ editing: semObj })} title="Edit semester name">✏️ Edit</button>}
                 <button className="schip newitem" onClick={() => setSemSheet({})}>＋ Semester</button>
               </div>
+
+              {selSem && (unassignedClasses.length > 0 || unassignedHW.length > 0) && (
+                <div className="unassigned-banner">
+                  <div className="unassigned-text">
+                    <strong>{unassignedClasses.length} class{unassignedClasses.length === 1 ? '' : 'es'} &amp; {unassignedHW.length} homework{unassignedHW.length === 1 ? '' : 's'}</strong> in “All”
+                  </div>
+                  <button className="btn primary sm" onClick={() => groupIntoSemester(selSem)}>
+                    Group into “{semObj ? semObj.name : 'this semester'}”
+                  </button>
+                </div>
+              )}
+
               <div className="toolbar">
                 <input className="search" placeholder="Search homework…" value={search} onChange={e => setSearch(e.target.value)} />
               </div>
@@ -2567,6 +3409,7 @@
 
               <div className="footer-tools">
                 <button className="link" onClick={remindAll}>🔔 Add to Calendar</button>
+                <button className="link" onClick={() => setSyncOpen(true)}>🔄 Cloud Sync</button>
                 <button className="link" onClick={exportData}>Backup</button>
                 <button className="link" onClick={() => importRef.current.click()}>Restore</button>
                 <input ref={importRef} type="file" accept="application/json" hidden onChange={e => { if (e.target.files[0]) importData(e.target.files[0]); e.target.value = ''; }} />
@@ -2577,6 +3420,7 @@
               <div className="sembar">
                 <button className={'schip' + (!selSem ? ' on' : '')} onClick={() => chooseSem(null)}>All</button>
                 {semesters.map(s => <button key={s.id} className={'schip' + (selSem === s.id ? ' on' : '')} onClick={() => chooseSem(s.id)}>{s.name}</button>)}
+                {semObj && <button className="schip edit-sem-btn" onClick={() => setSemSheet({ editing: semObj })} title="Edit semester name">✏️ Edit</button>}
                 <button className="schip newitem" onClick={() => setSemSheet({})}>＋ Semester</button>
               </div>
               <div className="sched-head"><span className="mlabel">Exams</span></div>
@@ -2598,6 +3442,7 @@
           ) : (
             <Schedule classes={classes} semesters={semesters} selId={selSem}
               onSelSem={chooseSem} onNewSem={() => setSemSheet({})} onEditSem={(s) => setSemSheet({ editing: s })}
+              onGroupUnassigned={groupIntoSemester}
               onNew={() => setClassSheet({ selSem })} onEdit={(c) => setClassSheet({ editing: c, selSem })} />
 
           )}
@@ -2632,8 +3477,9 @@
           onChanged={load} />}
 
         {sheet && <Sheet initial={sheet.editing || null} semesters={semesters} prefillDate={sheet.date || ''} prefillSem={sheet.prefillSem || selSem || ''} newKind={sheet.newKind || 'homework'} subjectColors={subjectColors} classSubjects={classSubjects} onClose={() => setSheet(null)} onSaved={() => { setSheet(null); load(); }} />}
-        {semSheet && <SemesterSheet initial={semSheet.editing || null} onClose={() => setSemSheet(null)} onDelete={deleteSem} onSaved={(id) => { setSemSheet(null); chooseSem(id); load(); }} />}
+        {semSheet && <SemesterSheet initial={semSheet.editing || null} unassignedCount={totalUnassigned} onGroupUnassigned={groupIntoSemester} onClose={() => setSemSheet(null)} onDelete={deleteSem} onSaved={(id) => { setSemSheet(null); chooseSem(id); load(); }} />}
         {classSheet && <ClassSheet initial={classSheet.editing || null} semesters={semesters} selSem={classSheet.selSem || selSem || ''} subjectColors={subjectColors} onClose={() => setClassSheet(null)} onDelete={deleteClass} onSaved={() => { setClassSheet(null); load(); }} />}
+        {syncOpen && <SyncSheet onClose={() => setSyncOpen(false)} onReload={load} />}
       </React.Fragment>
     );
   }
@@ -2714,7 +3560,23 @@
     const [sheet, setSheet] = useState(null);
     const [viewId, setViewId] = useState(null);
     const load = useCallback(async () => { setNotes(await getAllNotes()); }, []);
-    useEffect(() => { openDB().then(d => { db = d; load(); }); }, []);
+    useEffect(() => {
+      openDB().then(d => {
+        db = d;
+        load();
+        // Quiet background Cloudflare auto-sync
+        const cfAuto = localStorage.getItem('phantom_cf_auto') === 'true';
+        const cfUrl = localStorage.getItem('phantom_cf_url');
+        const cfKey = localStorage.getItem('phantom_cf_key');
+        if (cfAuto && cfUrl && cfKey) {
+          syncWithCloudflare({ workerUrl: cfUrl, syncKey: cfKey, mode: 'sync' })
+            .then(res => {
+              if (res && res.action === 'pulled') load();
+            })
+            .catch(e => console.warn('Background Cloudflare auto-sync skipped:', e));
+        }
+      });
+    }, []);
     async function togglePin(n) { await putNote({ ...n, pinned: !n.pinned, updatedAt: Date.now() }); load(); }
     async function del(n) { if (!confirm('Delete this note?')) return; await delNoteRec(n.id); setSheet(null); setViewId(null); load(); }
     let view = notes.slice();
@@ -2888,7 +3750,23 @@
     const [sheet, setSheet] = useState(null);
     const [viewId, setViewId] = useState(null);
     const load = useCallback(async () => { setItems(await allOf('ideas')); }, []);
-    useEffect(() => { openDB().then(d => { db = d; load(); }); }, []);
+    useEffect(() => {
+      openDB().then(d => {
+        db = d;
+        load();
+        // Quiet background Cloudflare auto-sync
+        const cfAuto = localStorage.getItem('phantom_cf_auto') === 'true';
+        const cfUrl = localStorage.getItem('phantom_cf_url');
+        const cfKey = localStorage.getItem('phantom_cf_key');
+        if (cfAuto && cfUrl && cfKey) {
+          syncWithCloudflare({ workerUrl: cfUrl, syncKey: cfKey, mode: 'sync' })
+            .then(res => {
+              if (res && res.action === 'pulled') load();
+            })
+            .catch(e => console.warn('Background Cloudflare auto-sync skipped:', e));
+        }
+      });
+    }, []);
     async function toggleStep(item, sid) {
       await putIn('ideas', { ...item, steps: (item.steps || []).map(s => s.id === sid ? { ...s, done: !s.done } : s) });
       load();
@@ -2983,7 +3861,23 @@
       for (const r of rows) m[r.key] = true;
       setLog(m);
     }, []);
-    useEffect(() => { openDB().then(d => { db = d; load(); }); }, []);
+    useEffect(() => {
+      openDB().then(d => {
+        db = d;
+        load();
+        // Quiet background Cloudflare auto-sync
+        const cfAuto = localStorage.getItem('phantom_cf_auto') === 'true';
+        const cfUrl = localStorage.getItem('phantom_cf_url');
+        const cfKey = localStorage.getItem('phantom_cf_key');
+        if (cfAuto && cfUrl && cfKey) {
+          syncWithCloudflare({ workerUrl: cfUrl, syncKey: cfKey, mode: 'sync' })
+            .then(res => {
+              if (res && res.action === 'pulled') load();
+            })
+            .catch(e => console.warn('Background Cloudflare auto-sync skipped:', e));
+        }
+      });
+    }, []);
     const dayIso = (back) => { const d = new Date(); d.setDate(d.getDate() - back); return toIso(d); };
     const isDone = (h, iso) => !!log[h.id + '|' + iso];
     async function toggle(h, iso) {
@@ -3336,7 +4230,23 @@
     const load = useCallback(async () => {
       setWallets(await allOf('wallets')); setTxs(await allOf('transactions')); setSubs(await allOf('subs'));
     }, []);
-    useEffect(() => { openDB().then(d => { db = d; load(); }); }, []);
+    useEffect(() => {
+      openDB().then(d => {
+        db = d;
+        load();
+        // Quiet background Cloudflare auto-sync
+        const cfAuto = localStorage.getItem('phantom_cf_auto') === 'true';
+        const cfUrl = localStorage.getItem('phantom_cf_url');
+        const cfKey = localStorage.getItem('phantom_cf_key');
+        if (cfAuto && cfUrl && cfKey) {
+          syncWithCloudflare({ workerUrl: cfUrl, syncKey: cfKey, mode: 'sync' })
+            .then(res => {
+              if (res && res.action === 'pulled') load();
+            })
+            .catch(e => console.warn('Background Cloudflare auto-sync skipped:', e));
+        }
+      });
+    }, []);
     const refreshRates = useCallback(async (silent) => {
       setFxBusy(true); if (!silent) setFxErr('');
       const r = await fetchRates();
@@ -3606,6 +4516,7 @@
     const [ideas, setIdeas] = useState([]);
     const [loaded, setLoaded] = useState(false);
     const [quickMenu, setQuickMenu] = useState(false);
+    const [syncOpen, setSyncOpen] = useState(false);
     const importRef = useRef(null);
 
     const refreshData = useCallback(async () => {
@@ -3787,13 +4698,15 @@
 
           {/* Universal Backup & Restore in Hub */}
           <div className="footer-tools" style={{ padding: '16px 0 40px' }}>
-            <button className="link" onClick={universalExportData}>{'\u2B07'} Backup All Data</button>
-            <button className="link" onClick={() => importRef.current && importRef.current.click()}>{'\u2B06'} Restore</button>
+            <button className="link" onClick={() => setSyncOpen(true)}>🔄 Cloud Sync</button>
+            <button className="link" onClick={universalExportData}>{'\\u2B07'} Backup All Data</button>
+            <button className="link" onClick={() => importRef.current && importRef.current.click()}>{'\\u2B06'} Restore</button>
             <input ref={importRef} type="file" accept="application/json" hidden onChange={e => {
               if (e.target.files[0]) universalImportData(e.target.files[0], refreshData);
               e.target.value = '';
             }} />
           </div>
+          {syncOpen && <SyncSheet onClose={() => setSyncOpen(false)} onReload={refreshData} />}
         </main>
 
         {/* Quick Action Floating Button (+) */}

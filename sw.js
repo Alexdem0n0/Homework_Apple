@@ -1,5 +1,5 @@
 /* Simple offline cache for the Homework Tracker */
-const CACHE = 'homework-tracker-v40';
+const CACHE = 'homework-tracker-v41';
 const ASSETS = [
   './',
   './index.html',
@@ -26,7 +26,7 @@ self.addEventListener('activate', (e) => {
 });
 
 /* Live data that must never be served from the cache (exchange rates). */
-const LIVE_HOSTS = ['dolarapi.com', 'pydolarve.org', 'exchangedyn.com'];
+const LIVE_HOSTS = ['dolarapi.com', 'pydolarve.org', 'exchangedyn.com', 'api.github.com', 'workers.dev'];
 
 self.addEventListener('fetch', (e) => {
   if (e.request.method !== 'GET') return;

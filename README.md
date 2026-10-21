@@ -31,13 +31,14 @@ it compiles right in the browser) as a single‑file **Progressive Web App
   (including weekends) and **download it as a compact image** to use as a
   home‑screen widget via an app like Widgetsmith
 - **Grades by corte** — the Venezuelan university model: three *cortes* worth
-  15% / 35% / 55% of the final grade (editable). Every assignment carries its own
-  maximum, so `14/15` and `14/20` are counted correctly — each corte's score is the
-  points you earned over the points that were on the table, scaled to 0–20, and the
-  class average weighs the cortes you've actually been graded in
+  15% / 30% / 55% of the final grade (editable). Includes overall /100 and /20 score display, corte points breakdown, and single lowest-grade highlighting across all classes.
+- **Career & Degree Tracker** — 10-semester milestone progress track, calculating total passed credit units (UC), degree completion percentage, and cumulative career GPA.
+- **Credit Units (UC)** — set credit units for every schedule subject and track graduation progress automatically.
+- **Cross-device Cloud Sync** — sync seamlessly between your laptop and phone via private Cloudflare Worker KV or private GitHub Gist, plus 1-tap AirDrop/Share Sheet backup.
+- **Semester Organization** — manage semesters ahead of time, rename anytime, and group unassigned items into a semester in one click.
 - **Search & filters** — To do / Done / All, plus text search across subjects/classes/notes
 - **Backup & restore** — export all your data to one file, import it back (e.g. on a new phone)
-- **100% local** — everything is stored on your device only; nothing is ever uploaded anywhere
+- **100% private** — everything is stored locally on your device with optional private cloud sync.
 
 ## 🧱 Tech stack
 
